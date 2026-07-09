@@ -1,0 +1,412 @@
+/* ============================================
+   AnotherServer — Checkers Game Styles
+   Тёмная тема с градиентами и анимациями
+   ============================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --bg-primary: #0f0f1a;
+    --bg-secondary: #1a1a2e;
+    --bg-card: rgba(26, 26, 46, 0.8);
+    --accent: #667eea;
+    --accent-glow: rgba(102, 126, 234, 0.3);
+    --text-primary: #e0e0e0;
+    --text-secondary: #8888aa;
+    --board-light: #2a2a44;
+    --board-dark: #16162a;
+    --white-piece: #f0f0f0;
+    --black-piece: #ff5555;
+    --highlight: rgba(102, 126, 234, 0.4);
+    --capture-highlight: rgba(255, 85, 85, 0.4);
+    --radius: 16px;
+}
+
+body {
+    background: var(--bg-primary);
+    background-image:
+        radial-gradient(ellipse at 20% 50%, rgba(102, 126, 234, 0.08) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 20%, rgba(118, 75, 162, 0.06) 0%, transparent 50%);
+    color: var(--text-primary);
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* --- Header --- */
+.page-header {
+    text-align: center;
+    padding: 32px 20px 16px;
+    width: 100%;
+    max-width: 900px;
+}
+
+.page-header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 6px;
+}
+
+.page-header p {
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
+/* --- Layout --- */
+.game-layout {
+    display: flex;
+    gap: 24px;
+    padding: 16px 20px 40px;
+    max-width: 900px;
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+/* --- Board Panel --- */
+.board-panel {
+    background: var(--bg-card);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: var(--radius);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+}
+
+.turn-indicator {
+    font-size: 15px;
+    font-weight: 600;
+    padding: 8px 20px;
+    border-radius: 10px;
+    background: rgba(102, 126, 234, 0.1);
+    border: 1px solid rgba(102, 126, 234, 0.2);
+    transition: all 0.3s;
+}
+
+.turn-indicator.bot-turn {
+    background: rgba(255, 85, 85, 0.1);
+    border-color: rgba(255, 85, 85, 0.2);
+    color: #ff7777;
+}
+
+/* --- Checkers Board --- */
+.checkers-board {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    width: 400px;
+    height: 400px;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 2px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.4);
+}
+
+.cell {
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.15s;
+    padding: 0;
+}
+
+.cell.light {
+    background: var(--board-light);
+}
+
+.cell.dark {
+    background: var(--board-dark);
+}
+
+.cell.selected {
+    background: var(--highlight) !important;
+    box-shadow: inset 0 0 12px rgba(102, 126, 234, 0.5);
+}
+
+.cell.move-hint {
+    background: var(--highlight) !important;
+}
+
+.cell.move-hint::after {
+    content: '';
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: rgba(102, 126, 234, 0.6);
+    position: absolute;
+}
+
+.cell.capture-hint {
+    background: var(--capture-highlight) !important;
+}
+
+.piece {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    transition: transform 0.2s, box-shadow 0.2s;
+    position: relative;
+}
+
+.piece.white {
+    background: radial-gradient(circle at 35% 35%, #ffffff, #c0c0d0);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4), inset 0 1px 2px rgba(255, 255, 255, 0.8);
+}
+
+.piece.black {
+    background: radial-gradient(circle at 35% 35%, #ff7777, #cc3333);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4), inset 0 1px 2px rgba(255, 120, 120, 0.5);
+}
+
+.piece.king::after {
+    content: '♛';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 18px;
+    color: rgba(0, 0, 0, 0.5);
+}
+
+.cell:hover .piece {
+    transform: scale(1.08);
+}
+
+/* --- Controls --- */
+.game-controls {
+    display: flex;
+    gap: 10px;
+}
+
+.game-controls button {
+    padding: 10px 20px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(102, 126, 234, 0.15);
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.2s;
+}
+
+.game-controls button:hover {
+    background: rgba(102, 126, 234, 0.3);
+    border-color: rgba(102, 126, 234, 0.4);
+    transform: translateY(-1px);
+}
+
+/* --- Analytics Panel --- */
+.analytics-panel {
+    background: var(--bg-card);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: var(--radius);
+    padding: 20px;
+    width: 280px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.analytics-panel h2 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.analytics-panel h2::before {
+    content: '📊';
+}
+
+.stat-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 14px;
+}
+
+.stat-card .stat-label {
+    font-size: 11px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+}
+
+.stat-card .stat-value {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--accent);
+}
+
+.stat-card .stat-desc {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+
+.best-move-card {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.08), rgba(118, 75, 162, 0.08));
+    border: 1px solid rgba(102, 126, 234, 0.15);
+    border-radius: 12px;
+    padding: 14px;
+}
+
+.best-move-card .stat-label {
+    font-size: 11px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+}
+
+.best-move-card .stat-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: #fff;
+    font-family: 'Courier New', monospace;
+}
+
+.game-log {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 10px;
+    padding: 10px 12px;
+    max-height: 150px;
+    overflow-y: auto;
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.08) transparent;
+}
+
+.game-log .log-entry {
+    padding: 2px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.game-log .log-entry:last-child {
+    border-bottom: none;
+}
+
+.game-log .log-entry .move-num {
+    color: var(--accent);
+    font-weight: 600;
+}
+
+/* --- Game Over --- */
+.game-over-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.game-over-card {
+    background: var(--bg-secondary);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 32px 40px;
+    text-align: center;
+}
+
+.game-over-card h2 {
+    font-size: 24px;
+    margin-bottom: 8px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.game-over-card p {
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+}
+
+.game-over-card button {
+    padding: 12px 28px;
+    border-radius: 12px;
+    border: none;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: transform 0.15s;
+}
+
+.game-over-card button:hover {
+    transform: scale(1.05);
+}
+
+/* --- Responsive --- */
+@media (max-width: 720px) {
+    .game-layout {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .checkers-board {
+        width: 320px;
+        height: 320px;
+    }
+
+    .cell {
+        width: 40px;
+        height: 40px;
+    }
+
+    .piece {
+        width: 28px;
+        height: 28px;
+    }
+
+    .analytics-panel {
+        width: 100%;
+        max-width: 400px;
+    }
+}

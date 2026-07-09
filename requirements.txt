@@ -1,0 +1,11 @@
+Flask
+openai
+openai-whisper
+requests
+soundfile
+silero
+torch
+torchaudio
+Flask-SQLAlchemy
+fastapi
+uvicorn

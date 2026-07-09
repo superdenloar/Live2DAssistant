@@ -1,0 +1,54 @@
+{
+	"Version": 3,
+	"FileReferences": {
+		"Moc": "[vtubergraphic doll]doll 10.moc3",
+		"Textures": [
+			"[vtubergraphic doll]doll 10.4096/texture_00.png",
+			"[vtubergraphic doll]doll 10.4096/texture_01.png"
+		],
+		"Physics": "[vtubergraphic doll]doll 10.physics3.json",
+		"DisplayInfo": "[vtubergraphic doll]doll 10.cdi3.json",
+		"Expressions": [
+			{
+				"Name": "02 dance 2b",
+				"File": "exp/02 dance 2b.exp3.json"
+			},
+			{
+				"Name": "blush",
+				"File": "exp/blush.exp3.json"
+			},
+			{
+				"Name": "happy",
+				"File": "exp/happy.exp3.json"
+			},
+			{
+				"Name": "mad",
+				"File": "exp/mad.exp3.json"
+			},
+			{
+				"Name": "sad",
+				"File": "exp/sad.exp3.json"
+			},
+			{
+				"Name": "shocked",
+				"File": "exp/shocked.exp3.json"
+			}
+		]
+	},
+	"Groups": [
+		{
+			"Target": "Parameter",
+			"Name": "LipSync",
+			"Ids": []
+		},
+		{
+			"Target": "Parameter",
+			"Name": "EyeBlink",
+			"Ids": [
+				"ParamEyeLOpen",
+				"ParamEyeROpen"
+			]
+		}
+	],
+	"HitAreas": []
+}

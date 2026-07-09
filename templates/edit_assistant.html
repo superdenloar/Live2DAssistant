@@ -1,0 +1,373 @@
+{% extends "base.html" %}
+
+{# --- БЛОК 1: ЗАГОЛОВОК СТРАНИЦЫ --- #}
+{% block title %}Редактор ассистента: {{ assistant.name }}{% endblock %}
+
+
+{# --- БЛОК 2: СКРИПТЫ В HEAD --- #}
+{% block head_scripts %}
+<!-- Подключаем стили для Cropper.js -->
+<link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
+<!-- Передаем словарь всех спикеров в JavaScript -->
+<script>
+    var ALL_SPEAKERS = {{ all_speakers_json| safe }};
+</script>
+{% endblock %}
+
+
+{# --- БЛОК 3: СОДЕРЖИМОЕ БОКОВОЙ ПАНЕЛИ --- #}
+{% block sidebar_content %}
+<div style="padding: 20px; text-align: center; color: #6c757d;">
+    <p>Вы находитесь в режиме редактирования ассистента.</p>
+    <a href="{{ url_for('index') }}" class="btn-secondary" style="float: none; display: inline-block;">Вернуться к
+        чату</a>
+</div>
+{% endblock %}
+
+
+{# --- БЛОК 4: ОСНОВНОЙ КОНТЕНТ СТРАНИЦЫ (РЕДАКТОР) --- #}
+{% block main_content %}
+<!-- Левая колонка с превью модели -->
+<div class="live2d-container">
+    <canvas id="live2d-canvas-editor"></canvas>
+</div>
+
+<!-- Правая колонка с настройками -->
+<div class="editor-container">
+    <form action="{{ url_for('update_assistant', assistant_id=assistant.id) }}" method="POST">
+        <!-- Шапка редактора: аватар, имя, описание -->
+        <div class="editor-header">
+            <div class="avatar-editor">
+                <img src="{{ url_for('static', filename=assistant.photo_url.lstrip('/')) }}" alt="avatar"
+                    class="editor-avatar">
+                <div class="change-avatar-btn">Изменить</div>
+            </div>
+            <div class="name-editor">
+                <input type="text" name="name" class="editor-name-input" value="{{ assistant.name }}">
+                <textarea name="description" class="editor-desc-input" rows="2"
+                    placeholder="Краткое описание...">{{ assistant.description }}</textarea>
+            </div>
+        </div>
+
+        <!-- Секция с выбором моделей -->
+        <div class="editor-section">
+            <div class="form-group">
+                <label for="live2d-model-select">Live2D Модель</label>
+                <select name="live2d_model" id="live2d-model-select">
+                    <option value="">-- Не выбрано --</option>
+                    {% for model_info in live2d_models %}
+                    <option value="{{ model_info.path }}" {% if model_info.path==assistant.live2d_model_path
+                        %}selected{% endif %}>
+                        {{ model_info.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="tts-selection-group">
+                <div class="form-group">
+                    <label for="silero-model-select">Файл голосовой модели</label>
+                    <select name="tts_model" id="silero-model-select">
+                        <option value="">-- Не выбрано --</option>
+                        {% for model_file in tts_models %}
+                        <option value="{{ model_file }}" {% if assistant.tts_model_path and model_file in
+                            assistant.tts_model_path %}selected{% endif %}>
+                            {{ model_file }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="silero-speaker-select">Голос спикера</label>
+                    <select name="tts_speaker" id="silero-speaker-select">
+                        <option value="">-- Сначала выберите файл --</option>
+                        {% for speaker_name in current_speakers %}
+                        <option value="{{ speaker_name }}" {% if speaker_name==assistant.tts_speaker %}selected{% endif
+                            %}>
+                            {{ speaker_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Секция с тестом голоса и настройками анимации рта -->
+        <div class="editor-section">
+            <h4>Тест голоса и анимации</h4>
+            <div class="tts-tester">
+                <textarea id="tts-test-input" rows="3" placeholder="Введите текст для проверки голоса..."></textarea>
+                <button type="button" id="tts-test-btn">Озвучить</button>
+            </div>
+            <div class="settings-list">
+                <div class="setting-item">
+                    <label for="mouth-min"
+                        title="Насколько рот приоткрыт в тишине или при минимальной громкости (0.0 - 1.0)">Мин.
+                        открытие</label>
+                    <input type="range" min="0" max="1" step="0.01" name="mouth_min_open" id="mouth-min"
+                        value="{{ assistant.mouth_min_open }}">
+                    <input type="number" class="slider-value-input" min="0" max="1" step="0.01"
+                        value="{{ assistant.mouth_min_open }}">
+                </div>
+                <div class="setting-item">
+                    <label for="mouth-max"
+                        title="Насколько рот открывается при максимальной громкости (0.0 - 1.0)">Макс. открытие</label>
+                    <input type="range" min="0" max="1" step="0.01" name="mouth_max_open" id="mouth-max"
+                        value="{{ assistant.mouth_max_open }}">
+                    <input type="number" class="slider-value-input" min="0" max="1" step="0.01"
+                        value="{{ assistant.mouth_max_open }}">
+                </div>
+                <div class="setting-item">
+                    <label for="mouth-jitter-str" title="Сила 'дрожания' для имитации живой речи (0.0 - 0.5)">Сила
+                        дрожания</label>
+                    <input type="range" min="0" max="0.5" step="0.01" name="mouth_jitter_strength" id="mouth-jitter-str"
+                        value="{{ assistant.mouth_jitter_strength }}">
+                    <input type="number" class="slider-value-input" min="0" max="0.5" step="0.01"
+                        value="{{ assistant.mouth_jitter_strength }}">
+                </div>
+                <div class="setting-item">
+                    <label for="mouth-jitter-speed"
+                        title="Скорость 'дрожания' рта. Чем меньше значение, тем быстрее дрожание">Скорость
+                        дрожания</label>
+                    <input type="range" min="10" max="200" step="1" name="mouth_jitter_speed" id="mouth-jitter-speed"
+                        value="{{ assistant.mouth_jitter_speed }}">
+                    <input type="number" class="slider-value-input" min="10" max="200" step="1"
+                        value="{{ assistant.mouth_jitter_speed }}">
+                </div>
+            </div>
+        </div>
+
+        <!-- Секция интерактивности -->
+        <div class="editor-section">
+            <h4>Система интерактивности</h4>
+            <div class="interactive-subsection">
+                <div class="setting-item">
+                    <label for="boredom-enabled"
+                        title="Ассистент будет произносить случайные фразы, если вы долго неактивны.">Использовать
+                        систему скуки</label>
+                    <input type="checkbox" class="styled-checkbox" name="boredom_enabled" id="boredom-enabled" {% if
+                        assistant.boredom_enabled %}checked{% endif %}>
+                </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Мин. время (сек)</label>
+                        <input type="number" name="boredom_min_time" value="{{ assistant.boredom_min_time }}">
+                    </div>
+                    <div class="form-group">
+                        <label>Макс. время (сек)</label>
+                        <input type="number" name="boredom_max_time" value="{{ assistant.boredom_max_time }}">
+                    </div>
+                </div>
+
+                <!-- === НОВАЯ ГАЛОЧКА ДЛЯ ГЕНЕРАЦИИ ФРАЗ НЕЙРОСЕТЬЮ === -->
+                <div class="setting-item">
+                    <label for="boredom-use-llm"
+                        title="Если включено, ассистент будет сам придумывать фразы для привлечения внимания, используя фразы из списка ниже как примеры стиля.">
+                        Придумывать нейросетью
+                    </label>
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox" id="boredom-use-llm" name="boredom_use_llm" class="styled-checkbox" {% if
+                            assistant.boredom_use_llm %}checked{% endif %}>
+                    </div>
+                </div>
+                <!-- ======================================================= -->
+
+                <div class="form-group">
+                    <label>Фразы для системы скуки</label>
+                    <div id="boredom-phrases-list" class="dynamic-list">
+                        {% for phrase in boredom_phrases %}
+                        <div class="dynamic-list-item" data-id="{{ phrase.id }}">
+                            <span>{{ phrase.text }}</span>
+                            <div class="item-controls">
+                                <button type="button" class="icon-btn test-phrase-btn" title="Озвучить"><img
+                                        src="{{ url_for('static', filename='Img/play_icon.png') }}"></button>
+                                <button type="button" class="icon-btn delete-phrase-btn" title="Удалить"><img
+                                        src="{{ url_for('static', filename='Img/trash_can.png') }}"></button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div class="add-phrase-controls">
+                        <input type="text" id="new-boredom-phrase-input" placeholder="Добавить новую фразу...">
+                        <button type="button" id="add-boredom-phrase-btn" class="add-btn small">+</button>
+                    </div>
+                </div>
+            </div>
+            <div class="interactive-subsection">
+                <div class="setting-item">
+                    <label for="patting-enabled" title="Позволяет 'гладить' модель, вызывая реакцию.">Разрешить реакцию
+                        на касания</label>
+                    <input type="checkbox" class="styled-checkbox" name="patting_enabled" id="patting-enabled" {% if
+                        assistant.patting_enabled %}checked{% endif %}>
+                </div>
+                <div class="settings-list">
+                    <div class="setting-item">
+                        <label for="patting-tilt"
+                            title="Угол, на который модель наклоняет голову вперед при нажатии.">Угол наклона
+                            головы</label>
+                        <input type="range" min="0" max="30" step="1" name="patting_tilt_angle" id="patting-tilt"
+                            value="{{ assistant.patting_tilt_angle }}">
+                        <input type="number" class="slider-value-input" min="0" max="30" step="1"
+                            value="{{ assistant.patting_tilt_angle }}">
+                    </div>
+                    <div class="setting-item">
+                        <label for="patting-eye"
+                            title="Насколько сильно закрываются глаза при касании (0.0 - 1.0)">Степень закрытия
+                            глаз</label>
+                        <input type="range" min="0" max="1" step="0.01" name="patting_eye_close" id="patting-eye"
+                            value="{{ assistant.patting_eye_close }}">
+                        <input type="number" class="slider-value-input" min="0" max="1" step="0.01"
+                            value="{{ assistant.patting_eye_close }}">
+                    </div>
+                    <div class="setting-item">
+                        <label for="patting-follow"
+                            title="Насколько сильно модель следует за курсором при поглаживании.">Сила следования за
+                            курсором</label>
+                        <input type="range" min="0" max="5" step="0.1" name="patting_follow_strength"
+                            id="patting-follow" value="{{ assistant.patting_follow_strength }}">
+                        <input type="number" class="slider-value-input" min="0" max="5" step="0.1"
+                            value="{{ assistant.patting_follow_strength }}">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Секция с системным промптом -->
+        <div class="editor-section">
+            <div class="form-group">
+                <label for="system-prompt-textarea">Системный промпт</label>
+                <textarea name="system_prompt" id="system-prompt-textarea" rows="8"
+                    placeholder="Опишите характер и роль ассистента...">{{ assistant.system_prompt }}</textarea>
+            </div>
+        </div>
+
+        <!-- Секция с дополнительными настройками -->
+        <div class="editor-section">
+            <h4>Дополнительные настройки</h4>
+            <div class="settings-list">
+                <div class="setting-item">
+                    <label for="model-scale" title="Общий размер модели на экране">Масштаб модели</label>
+                    <input type="range" min="0.1" max="5" step="0.1" name="scale" id="model-scale"
+                        value="{{ assistant.scale }}">
+                    <input type="number" class="slider-value-input" min="0.1" max="5" step="0.1"
+                        value="{{ assistant.scale }}">
+                </div>
+                <div class="setting-item">
+                    <label for="model-pos-x" title="Смещение по горизонтали. 0 = центр">Смещение по горизонтали
+                        (X)</label>
+                    <input type="range" min="-500" max="500" step="1" name="pos_x" id="model-pos-x"
+                        value="{{ assistant.pos_x }}">
+                    <input type="number" class="slider-value-input" min="-500" max="500" step="1"
+                        value="{{ assistant.pos_x }}">
+                </div>
+                <div class="setting-item">
+                    <label for="model-pos-y" title="Смещение по вертикали. 0 = верхний край">Смещение по вертикали
+                        (Y)</label>
+                    <input type="range" min="-2000" max="500" step="1" name="pos_y" id="model-pos-y"
+                        value="{{ assistant.pos_y }}">
+                    <input type="number" class="slider-value-input" min="-2000" max="500" step="1"
+                        value="{{ assistant.pos_y }}">
+                </div>
+                <div class="setting-item">
+                    <label for="memory-depth" title="Сколько 'вопросов-ответов' помнит ассистент">Глубина памяти</label>
+                    <input type="range" min="1" max="100" step="1" name="memory_depth" id="memory-depth"
+                        value="{{ assistant.memory_depth }}">
+                    <input type="number" class="slider-value-input" min="1" max="100" step="1"
+                        value="{{ assistant.memory_depth }}">
+                </div>
+            </div>
+        </div>
+
+        <!-- Секция настроек виджета -->
+        <div class="editor-section">
+            <h4>Настройки виджета</h4>
+            <div class="settings-list">
+                <div class="setting-item">
+                    <label for="widget-mode-select" title="Как виджет будет отображаться на внешних сайтах">Режим
+                        отображения</label>
+                    <select name="widget_mode" id="widget-mode-select" style="flex:1; max-width:200px;">
+                        <option value="novel" {% if assistant.widget_mode=='novel' or not assistant.widget_mode
+                            %}selected{% endif %}>🎭 Новелла (боковая панель)</option>
+                        <option value="popup" {% if assistant.widget_mode=='popup' %}selected{% endif %}>💬 Попап
+                            (плавающее окно)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group" style="margin-top:10px;">
+                <label for="greeting-phrase">Фраза приветствия</label>
+                <input type="text" name="greeting_phrase" id="greeting-phrase"
+                    value="{{ assistant.greeting_phrase or 'Привет! Чем могу помочь? 😊' }}"
+                    placeholder="Привет! Чем могу помочь?">
+            </div>
+            <div class="settings-list" style="margin-top:8px;">
+                <div class="setting-item">
+                    <label for="widget-primary-color">Основной цвет</label>
+                    <input type="color" name="widget_primary_color" id="widget-primary-color"
+                        value="{{ assistant.widget_primary_color or '#667eea' }}"
+                        style="width:50px;height:32px;border:none;cursor:pointer;">
+                </div>
+                <div class="setting-item">
+                    <label for="widget-user-bubble-color">Цвет пузырей пользователя</label>
+                    <input type="color" name="widget_user_bubble_color" id="widget-user-bubble-color"
+                        value="{{ assistant.widget_user_bubble_color or '#667eea' }}"
+                        style="width:50px;height:32px;border:none;cursor:pointer;">
+                </div>
+                <div class="setting-item">
+                    <label for="widget-text-color">Цвет текста</label>
+                    <input type="color" name="widget_text_color" id="widget-text-color"
+                        value="{{ assistant.widget_text_color or '#e0e0f0' }}"
+                        style="width:50px;height:32px;border:none;cursor:pointer;">
+                </div>
+            </div>
+            <div class="form-group" style="margin-top:8px;">
+                <label for="widget-bg-color">Фон панели (CSS цвет)</label>
+                <input type="text" name="widget_bg_color" id="widget-bg-color"
+                    value="{{ assistant.widget_bg_color or 'rgba(15,15,30,0.92)' }}" placeholder="rgba(15,15,30,0.92)">
+            </div>
+            <div style="margin-top:12px;">
+                <a href="{{ url_for('api_embed_page', assistant_id=assistant.id) }}" target="_blank"
+                    style="color:#667eea; font-size:13px; text-decoration:none;">
+                    🔌 Инструкция для встраивания на сайт →
+                </a>
+            </div>
+        </div>
+
+        <!-- Кнопки действий -->
+        <div class="editor-actions">
+            <a href="{{ url_for('index') }}" class="action-btn cancel-edit-btn">Отмена</a>
+            <button type="submit" class="action-btn save-btn">Сохранить изменения</button>
+        </div>
+    </form>
+</div>
+
+<!-- МОДАЛЬНОЕ ОКНО ДЛЯ ИЗМЕНЕНИЯ АВАТАРА -->
+<div id="avatar-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+        <h4>Кадрирование аватара</h4>
+        <div class="avatar-cropper-container">
+            <img id="avatar-cropper-image">
+        </div>
+        <input type="file" id="avatar-upload-input" accept="image/png, image/jpeg, image/webp" style="display: none;">
+        <div class="modal-actions">
+            <button type="button" id="set-default-avatar-btn" class="btn-secondary">Аватар по умолчанию</button>
+            <div class="right-actions">
+                <button type="button" id="avatar-choose-file-btn" class="btn-secondary">Выбрать файл</button>
+                <button type="button" id="save-avatar-btn" class="save-btn">Сохранить</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+{# --- БЛОК 5: СКРИПТЫ В КОНЦЕ BODY --- #}
+{% block body_scripts %}
+<!-- Подключаем библиотеки Live2D ЛОКАЛЬНО -->
+<script src="{{ url_for('static', filename='libs/live2dcubismcore.min.js') }}"></script>
+<script src="{{ url_for('static', filename='libs/pixi.min.js') }}"></script>
+<script src="{{ url_for('static', filename='libs/cubism4.min.js') }}"></script>
+<!-- Cropper пока можно оставить, он обычно стабилен, но можно скачать и его -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+
+<!-- Подключаем специальный JavaScript для этой страницы -->
+<script src="{{ url_for('static', filename='edit_assistant.js') }}"></script>
+{% endblock %}

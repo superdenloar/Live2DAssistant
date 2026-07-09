@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Шашки + AI ассистент</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="checkers-page">
+    <main class="checkers-layout">
+        <section class="checkers-panel">
+            <h1>Шашки против бота</h1>
+            <p id="turn-label">Ход: Белые (вы)</p>
+            <div id="checkers-board" class="checkers-board"></div>
+            <div class="checkers-controls">
+                <button id="restart-game-btn">Новая партия</button>
+            </div>
+        </section>
+
+        <section id="assistant-widget" class="assistant-widget">
+            <div class="assistant-header">
+                <strong>Аниме-ассистент</strong>
+                <button id="toggle-chat-btn">—</button>
+            </div>
+            <div id="assistant-chat-body" class="assistant-chat-body">
+                <div id="assistant-messages" class="assistant-messages"></div>
+                <div class="assistant-input-row">
+                    <input type="text" id="assistant-input" placeholder="Спросите совет по позиции...">
+                    <button id="assistant-send-btn">Отправить</button>
+                </div>
+                <div class="assistant-input-row">
+                    <button id="assistant-record-btn">🎤 Голос</button>
+                    <span id="record-status">не записывает</span>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        window.CHECKERS_CONFIG = { default_chat_id: {{ default_chat_id|tojson }} };
+    </script>
+    <script src="{{ url_for('static', filename='checkers.js') }}"></script>
+</body>
+</html>

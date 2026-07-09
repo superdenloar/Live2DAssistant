@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Шашки — AnotherServer</title>
+    <meta name="description" content="Шашки против бота с AI-ассистентом Live2D">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header class="page-header">
+        <h1>♟ Шашки против бота</h1>
+        <p>Играйте и спрашивайте совет у Live2D ассистента</p>
+    </header>
+
+    <main class="game-layout">
+        <!-- Доска -->
+        <section class="board-panel">
+            <div class="turn-indicator" id="turn-indicator">⚪ Ваш ход (белые)</div>
+            <div class="checkers-board" id="checkers-board"></div>
+            <div class="game-controls">
+                <button id="restart-btn">🔄 Новая партия</button>
+            </div>
+        </section>
+
+        <!-- Аналитика -->
+        <aside class="analytics-panel">
+            <h2>Аналитика</h2>
+
+            <div class="stat-card">
+                <div class="stat-label">Номер хода</div>
+                <div class="stat-value" id="stat-move-num">0</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-label">Макс. цепочка взятий</div>
+                <div class="stat-value" id="stat-captures">0</div>
+                <div class="stat-desc">Сколько шашек можно съесть за 1 ход</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-label">Преимущество</div>
+                <div class="stat-value" id="stat-advantage">0</div>
+                <div class="stat-desc">Разница шашек (вы − бот)</div>
+            </div>
+
+            <div class="best-move-card">
+                <div class="stat-label">Оптимальный ход</div>
+                <div class="stat-value" id="stat-best-move">—</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-label">Журнал ходов</div>
+                <div class="game-log" id="game-log"></div>
+            </div>
+        </aside>
+    </main>
+
+    <!-- Скрипт шашек -->
+    <script src="checkers.js"></script>
+
+    <!-- ============================================
+         ВНЕДРЕНИЕ ВИДЖЕТА LIVE2D ASSISTANT
+         Всего 2 строки! (context уже экспортируется из checkers.js)
+         ============================================ -->
+    <script src="http://127.0.0.1:5000/static/widget.js"
+            data-server="http://127.0.0.1:5000"
+            data-assistant-id="1"></script>
+
+</body>
+</html>

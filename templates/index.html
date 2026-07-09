@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+
+{# --- БЛОК 1: ЗАГОЛОВОК СТРАНИЦЫ --- #}
+{% block title %}Чат с ассистентом{% endblock %}
+
+
+{# --- БЛОК 2: СКРИПТЫ В HEAD (для передачи конфига в JavaScript) --- #}
+{% block head_scripts %}
+    <script>
+        var APP_CONFIG = {{ config_data|tojson }};
+    </script>
+{% endblock %}
+
+
+{# --- БЛОК 3: СОДЕРЖИМОЕ БОКОВОЙ ПАНЕЛИ ДЛЯ ГЛАВНОЙ СТРАНИЦЫ --- #}
+{% block sidebar_content %}
+    <!-- СТРАНИЦА 1: "Ваш профиль" -->
+    <div id="profile-view" class="view active">
+    <h4>Ваш профиль</h4>
+    <div class="form-group">
+        <!-- 1. ИЗМЕНИТЕ ТЕКСТ ВНУТРИ LABEL -->
+        <label for="user-name">Как вас называть?</label>
+        <input type="text" id="user-name" value="{{ user.name }}">
+    </div>
+    <div class="form-group">
+        <label for="user-desc">Ваше описание для ассистентов</label>
+        <textarea id="user-desc" rows="4">{{ user.description }}</textarea>
+    </div>
+    <!-- 2. ДОБАВЬТЕ ID КНОПКЕ -->
+    <button class="save-btn" id="save-profile-btn">Сохранить</button>
+</div>
+
+    <!-- СТРАНИЦА 2: "Ассистенты" -->
+    <div id="assistants-view" class="view">
+        <div class="view-header">
+            <h4>Ассистенты</h4>
+            <a href="{{ url_for('add_assistant') }}" class="add-btn">Добавить</a>
+        </div>
+        <div class="scroll-list">
+            {% for assistant in assistants %}
+            <a href="{{ url_for('edit_assistant', assistant_id=assistant.id) }}" class="list-item" data-id="{{ assistant.id }}">
+                <img src="{{ url_for('static', filename=assistant.photo_url) }}" alt="avatar" class="avatar">
+                <div class="item-info">
+                    <h5>{{ assistant.name }}</h5>
+                    <p>{{ assistant.description }}</p>
+                </div>
+                <div class="item-controls">
+                    <button class="icon-btn delete-btn-in-list" data-id="{{ assistant.id }}" data-name="{{ assistant.name }}" title="Удалить">
+                        <img src="{{ url_for('static', filename='Img/trash_can.png') }}" alt="Удалить">
+                    </button>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- СТРАНИЦА 3: "Чаты" -->
+    <div id="chats-view" class="view">
+        <div class="view-header">
+            <h4>Чаты</h4>
+            <button id="create-chat-btn" class="add-btn">Создать чат</button>
+        </div>
+        <div id="chats-list" class="scroll-list">
+            {% for chat in chats %}
+            <div class="list-item {% if loop.first %}active{% endif %}" data-chat-id="{{ chat.id }}">
+                <button class="icon-btn chat-load-btn" title="Загрузить чат">
+                    <img src="{{ url_for('static', filename='Img/chat.png') }}" alt="Загрузить">
+                </button>
+                <div class="item-info">
+                    <h5>{{ chat.name }}</h5>
+                    <p>Ассистент: {{ chat.assistant.name }}</p>
+                </div>
+                <div class="item-controls">
+                    <button class="icon-btn chat-settings-btn" data-id="{{ chat.id }}" title="Настройки">
+                        <img src="{{ url_for('static', filename='Img/gear.png') }}" alt="Настройки">
+                    </button>
+                    <button class="icon-btn delete-chat-btn" data-id="{{ chat.id }}" data-name="{{ chat.name }}" title="Удалить">
+                        <img src="{{ url_for('static', filename='Img/trash_can.png') }}" alt="Удалить">
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+{% endblock %}
+
+
+{# --- БЛОК 4: ОСНОВНОЙ КОНТЕНТ СТРАНИЦЫ (МОДЕЛЬ И ЧАТ) --- #}
+{% block main_content %}
+    <div class="live2d-container">
+        <canvas id="live2d-canvas"></canvas>
+    </div>
+    <div class="chat-container">
+        <div id="chat-log">
+            <!-- Чат начинается пустым -->
+        </div>
+        <div class="chat-input-area">
+            <div class="thinking-overlay" id="thinking-overlay" style="display: none;">
+                <button id="cancel-btn">Отмена</button>
+            </div>
+            <div class="chat-input">
+                <input type="text" id="user-input" placeholder="Напишите сообщение...">
+                <button id="send-btn">Отправить</button>
+                <button id="record-btn">Запись</button>
+                <button id="reset-btn">Новый чат</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно для подтверждения удаления (универсальное) -->
+    <div id="delete-confirm-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <h4>Подтверждение</h4>
+            <p id="delete-confirm-text">Вы уверены?</p>
+            <div class="modal-actions">
+                <button id="cancel-delete-btn" class="btn-secondary">Нет</button>
+                <form id="delete-confirm-form" method="POST" style="display: inline;">
+                    <button type="submit" class="delete-btn">Да, удалить</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно для подтверждения очистки чата -->
+<div id="clear-confirm-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+        <h4>Подтверждение</h4>
+        <p>Вы уверены, что хотите удалить все сообщения в этом чате? Это действие необратимо.</p>
+        <div class="modal-actions">
+            <button id="cancel-clear-btn" class="btn-secondary">Нет</button>
+            <button id="confirm-clear-btn" class="delete-btn">Да, очистить</button>
+        </div>
+    </div>
+</div>
+
+    <!-- Модальное окно для создания нового чата -->
+    <div id="create-chat-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <h4>Новый чат</h4>
+            <form action="{{ url_for('create_chat') }}" method="POST">
+                <div class="form-group">
+                    <label for="chat-name-input">Название чата</label>
+                    <input type="text" name="chat_name" id="chat-name-input" required>
+                </div>
+                <div class="form-group">
+                    <label for="chat-assistant-select">Выберите ассистента</label>
+                    <select name="assistant_id" id="chat-assistant-select" required>
+                        {% if not assistants %}
+                        <option value="" disabled>Сначала создайте ассистента</option>
+                        {% else %}
+                        {% for assistant in assistants %}
+                        <option value="{{ assistant.id }}">{{ assistant.name }}</option>
+                        {% endfor %}
+                        {% endif %}
+                    </select>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" id="cancel-create-chat-btn" class="btn-secondary">Отмена</button>
+                    <button type="submit" class="save-btn">Создать</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Модальное окно для настроек чата -->
+    <div id="chat-settings-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <h4>Настройки чата</h4>
+            <form id="chat-settings-form" method="POST">
+                <div class="form-group">
+                    <label for="edit-chat-name-input">Название чата</label>
+                    <input type="text" name="chat_name" id="edit-chat-name-input" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit-chat-assistant-select">Выберите ассистента</label>
+                    <select name="assistant_id" id="edit-chat-assistant-select" required></select>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary close-modal-btn">Отмена</button>
+                    <button type="submit" class="save-btn">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+{% endblock %}
+
+
+{# --- БЛОК 5: СКРИПТЫ В КОНЦЕ BODY (ДЛЯ LIVE2D) --- #}
+{% block body_scripts %}
+    <!-- Подключаем библиотеки Live2D ЛОКАЛЬНО -->
+    <script src="{{ url_for('static', filename='libs/live2dcubismcore.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='libs/pixi.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='libs/cubism4.min.js') }}"></script>
+{% endblock %}

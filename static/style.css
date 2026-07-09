@@ -1,0 +1,563 @@
+/* ======================================================= */
+/*      ОСНОВНЫЕ СТИЛИ СТРАНИЦЫ И КОНТЕЙНЕРОВ             */
+/* ======================================================= */
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f0f2f5;
+    margin: 0;
+    height: 100vh;
+    overflow: hidden; /* Запрещаем прокрутку всей страницы */
+}
+
+/* Главный контейнер всего приложения */
+.app-container {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    position: relative;
+    max-width: 1600px; /* Ограничим максимальную ширину для больших экранов */
+    margin: 0 auto;
+    background-color: white;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+/* Контейнер для основного контента (модель + чат или редактор) */
+.main-content {
+    flex-grow: 1;
+    display: flex;
+    width: 100%;
+    height: 100%;
+}
+
+/* ======================================================= */
+/*      СТИЛИ LIVE2D МОДЕЛИ И ЧАТА                        */
+/* ======================================================= */
+
+.live2d-container {
+    flex-basis: 50%;
+    background: linear-gradient(135deg, #a8e0ff 0%, #d8baff 100%);
+    position: relative;
+}
+
+#live2d-canvas, #live2d-canvas-editor {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.chat-container {
+    flex-basis: 50%;
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid #ddd;
+}
+
+#chat-log {
+    flex-grow: 1;
+    padding: 20px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* ======================================================= */
+/*      СТИЛИ СООБЩЕНИЙ В ЧАТЕ (НОВАЯ ВЕРСИЯ)              */
+/* ======================================================= */
+
+/* Общий стиль для всех сообщений */
+/* Контейнер для сообщения (нужен для выравнивания) */
+.message-wrapper {
+    display: flex;
+    max-width: 90%; /* Ограничиваем ширину, чтобы было место для хвостика */
+}
+.message-wrapper.user { align-self: flex-end; }
+.message-wrapper.ai { align-self: flex-start; }
+
+
+/* Общий стиль для всех "облачков" сообщений */
+.message {
+    padding: 10px 18px;
+    max-width: 100%; /* Сообщение занимает всю ширину wrapper'а */
+    line-height: 1.45;
+    word-wrap: break-word;
+    position: relative; /* Необходимо для позиционирования хвостика */
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+/* --- Сообщения АССИСТЕНТА (слева, синие) --- */
+.message.ai {
+    background-color: #0084ff; /* Синий фон */
+    color: white; /* Белый текст */
+    /* Закругляем все углы, кроме левого нижнего */
+    border-radius: 20px 20px 20px 0px;
+}
+
+/* Хвостик для сообщения ассистента (указывает ВПРАВО) */
+.message.ai::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: -20px; /* Выставляем хвостик за пределы блока */
+    width: 20px;
+    height: 20px;
+    /* Магия для создания кривого хвостика, отзеркаленная по горизонтали */
+    background: radial-gradient(circle at 0 0, transparent 0, transparent 20px, #0084ff 20px);
+}
+
+
+/* --- Сообщения ПОЛЬЗОВАТЕЛЯ (справа, серые) --- */
+.message.user {
+    background-color: #e4e6eb; /* Серый фон */
+    color: #050505; /* Темный текст */
+    /* Закругляем все углы, кроме правого нижнего */
+    border-radius: 20px 20px 0px 20px;
+}
+
+/* Хвостик для сообщения пользователя (указывает ВЛЕВО) */
+.message.user::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    right: -20px; /* Выставляем хвостик за пределы блока */
+    width: 20px;
+    height: 20px;
+    /* Магия для создания кривого хвостика */
+    background: radial-gradient(circle at 100% 0, transparent 0, transparent 20px, #e4e6eb 20px);
+}
+
+.chat-input-area {
+    position: relative;
+    border-top: 1px solid #ddd;
+    flex-shrink: 0;
+}
+
+.chat-input {
+    display: flex;
+    padding: 15px;
+}
+
+#user-input {
+    flex-grow: 1;
+    border: 1px solid #ccc;
+    border-radius: 20px;
+    padding: 10px 15px;
+    font-size: 16px;
+}
+
+/* ======================================================= */
+/*      СТИЛИ КНОПОК                                     */
+/* ======================================================= */
+
+/* --- Стили для кнопок в чате --- */
+#send-btn, #record-btn, #reset-btn, #cancel-btn {
+    margin-left: 10px;
+    padding: 10px 20px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 16px;
+    border: none;
+    transition: background-color 0.2s, filter 0.2s;
+}
+
+#send-btn { background-color: #0084ff; color: white; }
+#send-btn:hover { background-color: #006bcf; }
+#send-btn:disabled { background-color: #a0cffc; cursor: not-allowed; }
+
+#record-btn { background-color: #4caf50; color: white; }
+#record-btn:hover { background-color: #45a049; }
+#record-btn.recording { background-color: #f44336; }
+#record-btn:disabled { background-color: #a5d6a7; cursor: not-allowed; }
+
+#reset-btn { background-color: #f0f0f0; border: 1px solid #ccc; color: #000; }
+#reset-btn:hover { background-color: #e0e0e0; }
+
+#cancel-btn { background-color: #f44336; color: white; }
+
+/* ======================================================= */
+/*      СТИЛИ ВЫДВИЖНОГО МЕНЮ (САЙДБАРА)                  */
+/* ======================================================= */
+
+#menu-toggle-btn {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    z-index: 1001;
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid #ccc;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    font-size: 24px;
+    cursor: pointer;
+    transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+}
+
+.sidebar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 420px;
+    height: 100%;
+    background: #f8f9fa;
+    border-right: 1px solid #dee2e6;
+    z-index: 1002;
+    display: flex;
+    flex-direction: column;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease-in-out;
+    box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+}
+
+.sidebar.open {
+    transform: translateX(0);
+}
+
+.sidebar.open ~ .main-content #menu-toggle-btn,
+.sidebar.open ~ #menu-toggle-btn {
+    opacity: 0;
+    transform: scale(0.5);
+    pointer-events: none;
+}
+
+.sidebar-header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; border-bottom: 1px solid #dee2e6; flex-shrink: 0; }
+.sidebar-header h3 { margin: 0; }
+#sidebar-close-btn { background: none; border: none; font-size: 28px; cursor: pointer; color: #6c757d; }
+
+.sidebar-nav { display: flex; padding: 10px; border-bottom: 1px solid #dee2e6; background: #fff; flex-shrink: 0; }
+.nav-btn { flex-grow: 1; background: #e9ecef; border: 1px solid #ced4da; padding: 8px 12px; border-radius: 5px; cursor: pointer; transition: all 0.2s; text-decoration: none; color: #000; text-align: center; }
+.nav-btn:not(:last-child) { margin-right: 10px; }
+.nav-btn.active { background: #007bff; color: white; border-color: #007bff; }
+.nav-btn:hover:not(.active) { background-color: #d1d9e0; }
+.nav-btn.active:hover, .save-btn:hover, .add-btn:hover, .delete-btn:hover, .btn-secondary:hover, .action-btn:hover { filter: brightness(0.9); }
+
+.sidebar-content { padding: 20px; overflow-y: auto; flex-grow: 1; }
+.view { display: none; }
+.view.active { display: block; }
+.view h4 { margin-top: 0; }
+
+.form-group { margin-bottom: 15px; }
+.form-group label { display: block; margin-bottom: 5px; font-weight: 500; }
+.form-group input, .form-group textarea { width: calc(100% - 20px); padding: 8px 10px; border: 1px solid #ced4da; border-radius: 5px; font-size: 14px; }
+.save-btn, .add-btn { background: #28a745; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; float: right; transition: filter 0.2s; text-decoration: none; }
+.view-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+.view-header .add-btn { float: none; }
+
+/* ======================================================= */
+/*      СТИЛИ СПИСКОВ В САЙДБАРЕ (АССИСТЕНТЫ, ЧАТЫ)        */
+/* ======================================================= */
+
+.scroll-list { display: flex; flex-direction: column; gap: 15px; }
+.list-item { display: flex; align-items: center; padding: 15px; background: #fff; border: 2px solid #e9ecef; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: all 0.2s; cursor: pointer; text-decoration: none; color: inherit; }
+.list-item:not(.active):hover { background: #f0f2f5; border-color: #d1d9e0; }
+.list-item.active { border-color: #007bff; box-shadow: 0 4px 8px rgba(0, 123, 255, 0.15); }
+.avatar { width: 60px; height: 60px; border-radius: 8px; margin-right: 15px; object-fit: cover; flex-shrink: 0; }
+.item-info { flex-grow: 1; }
+.item-info h5, .item-info p { margin: 0; }
+.item-info p { font-size: 0.9em; color: #6c757d; }
+.item-controls { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+.icon-btn { background: none; border: none; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center; }
+.icon-btn img { width: 28px; height: 28px; transition: filter 0.2s ease-in-out; }
+.icon-btn:hover img { filter: brightness(0.6); }
+
+/* ======================================================= */
+/*      СТИЛИ РЕДАКТОРА И МОДАЛЬНОГО ОКНА                 */
+/* ======================================================= */
+
+.editor-container { flex-basis: 50%; display: flex; flex-direction: column; padding: 30px; overflow-y: auto; }
+.editor-header { display: flex; align-items: center; margin-bottom: 30px; padding-bottom: 30px; border-bottom: 1px solid #e9ecef; }
+.avatar-editor { position: relative; margin-right: 30px; cursor: pointer; flex-shrink: 0; }
+.editor-avatar { width: 150px; height: 150px; border-radius: 12px; object-fit: cover; display: block; }
+.change-avatar-btn { position: absolute; bottom: 0; left: 0; width: 100%; background: rgba(0,0,0,0.6); color: white; border: none; border-radius: 0 0 12px 12px; padding: 8px 0; font-size: 14px; text-align: center; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+.avatar-editor:hover .change-avatar-btn { opacity: 1; }
+.name-editor { flex-grow: 1; }
+.editor-name-input { font-size: 32px; font-weight: bold; border: none; border-bottom: 2px solid transparent; width: 100%; padding: 5px 0; background: none; }
+.editor-name-input:focus { outline: none; border-bottom: 2px solid #007bff; }
+.editor-desc-input { font-size: 16px; color: #6c757d; border: none; width: 100%; padding: 5px 0; resize: none; background: none; }
+.editor-desc-input:focus { outline: none; }
+.editor-section { margin-bottom: 20px; padding: 20px; background: #fff; border-radius: 8px; border: 1px solid #e9ecef; }
+.editor-section select { width: 100%; padding: 10px; border-radius: 5px; border: 1px solid #ced4da; font-size: 14px; }
+.tts-selection-group { display: flex; gap: 20px; }
+.tts-selection-group .form-group { flex: 1; }
+#system-prompt-textarea { width: calc(100% - 24px); padding: 12px; border: 1px solid #ced4da; border-radius: 5px; font-size: 14px; min-height: 150px; }
+.editor-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 30px; }
+.action-btn { padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: 500; border: none; transition: filter 0.2s; color: white; text-decoration: none; }
+.action-btn.save-btn { background-color: #28a745; }
+.action-btn.cancel-edit-btn { background-color: #6c757d; }
+.btn-secondary { background: #6c757d; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; margin-right: 10px; text-decoration: none; transition: filter 0.2s; }
+.delete-btn { background-color: #dc3545; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; transition: filter 0.2s; }
+
+.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; display: flex; justify-content: center; align-items: center; }
+.modal-content { background: white; padding: 30px; border-radius: 12px; max-width: 500px; text-align: center; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+.modal-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; }
+.right-actions { display: flex; gap: 10px; }
+.modal-actions .delete-btn { border-radius: 5px; }
+
+.tts-tester { margin-top: 20px; border-top: 1px solid #e9ecef; padding-top: 20px; }
+.tts-tester textarea { width: calc(100% - 24px); padding: 12px; border: 1px solid #ced4da; border-radius: 5px; resize: vertical; margin-bottom: 10px; }
+.tts-tester button { background: #007bff; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; float: right; }
+.tts-tester button:disabled { background: #a0cffc; cursor: not-allowed; }
+
+.settings-list { display: flex; flex-direction: column; gap: 15px; margin-top: 20px; }
+.setting-item { display: flex; align-items: center; justify-content: space-between; }
+.setting-item label { flex-basis: 40%; font-weight: 500; cursor: help; }
+.setting-item input[type="range"] { flex-grow: 1; margin: 0 15px; }
+.slider-value-input { width: 60px; text-align: right; font-weight: bold; color: #007bff; border: 1px solid #ced4da; border-radius: 5px; padding: 5px; -webkit-appearance: none; margin: 0; }
+.slider-value-input[type=number] { -moz-appearance: textfield; }
+
+/* Стили для Cropper.js в модальном окне */
+.avatar-cropper-container { margin: 20px 0; width: 100%; height: 300px; background-color: #f0f2f5; border: 1px solid #dee2e6; }
+#avatar-cropper-image { display: block; max-width: 100%; }
+
+/* Стили для секции интерактивности */
+.interactive-subsection { padding: 15px 0; }
+.interactive-subsection:not(:first-child) { border-top: 1px solid #e9ecef; margin-top: 15px; }
+.setting-item input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; position: relative; top: 4px; appearance: none; border: 2px solid #ced4da; border-radius: 4px; }
+.setting-item input[type="checkbox"]:checked { background-color: #007bff; border-color: #007bff; }
+.setting-item input[type="checkbox"]:checked::after { content: '✔'; color: white; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-size: 14px; }
+.dynamic-list { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; padding: 10px; background: #f0f2f5; border-radius: 5px; min-height: 50px; }
+.dynamic-list-item { display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 8px 12px; border-radius: 5px; border: 1px solid #dee2e6; }
+.add-phrase-controls { display: flex; margin-top: 10px; }
+.add-phrase-controls input { flex-grow: 1; border-radius: 5px 0 0 5px; border-right: none; }
+.add-phrase-controls .add-btn.small { float: none; border-radius: 0 5px 5px 0; font-size: 20px; padding: 5px 12px; }
+
+/* ======================================================= */
+/*      ГОЛОСОВЫЕ СООБЩЕНИЯ И ОВЕРЛЕЙ                     */
+/* ======================================================= */
+
+.message.user-voice {
+    /* Наследуем ключевые стили от .message.user для консистентности */
+    background-color: #e4e6eb; /* Серый фон */
+    color: #050505; /* Темный текст */
+    border-radius: 20px 20px 0px 20px; /* Правильный радиус для "хвостика" */
+    
+    /* Специфичные стили для контента */
+    display: flex;
+    flex-direction: column; /* Располагаем плеер и текст друг под другом */
+    gap: 8px; /* Расстояние между плеером и текстом */
+    padding: 12px 18px; /* Немного другие отступы для красоты */
+}
+
+/* Стили для аудио-плеера внутри сообщения */
+.message.user-voice audio {
+    width: 280px;
+    height: 40px;
+}
+
+/* Стили для расшифрованного текста (транскрипции) */
+.message.user-voice .transcription {
+    font-style: italic;
+    font-size: 0.9em;
+    padding-top: 8px;
+    margin-top: 5px;
+    /* ИСПРАВЛЕНО: Линия теперь темная и полупрозрачная, чтобы хорошо смотреться на сером фоне */
+    border-top: 1px solid rgba(5, 5, 5, 0.2); 
+}
+
+.thinking-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(255, 255, 255, 0.8); display: flex; justify-content: center; align-items: center; z-index: 10; }
+
+#create-chat-modal .form-group { text-align: left; }
+
+/* Добавляем отступ для новой кнопки в списке чатов */
+.list-item .chat-load-btn {
+    margin-right: 15px;
+}
+
+/* Контейнер для сообщения и меню */
+.message-wrapper {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+}
+.message-wrapper.user { justify-content: flex-end; }
+.message-wrapper.ai { justify-content: flex-start; }
+
+/* Кнопка с троеточием */
+.message-options-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 20px;
+    color: #adb5bd;
+    padding: 5px;
+    line-height: 1;
+}
+
+/* Контекстное меню */
+.context-menu {
+    position: absolute;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 100;
+    overflow: hidden;
+}
+.context-menu-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 14px;
+}
+.context-menu-item:hover {
+    background: #f0f2f5;
+}
+.context-menu-item img {
+    width: 16px;
+    height: 16px;
+    margin-right: 8px;
+}
+
+/* Стили для контекстного меню сообщения */
+.context-menu {
+    position: fixed; /* Fixed, чтобы не зависеть от прокрутки */
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 200;
+    overflow: hidden;
+    padding: 5px 0;
+}
+.context-menu-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 15px;
+    cursor: pointer;
+    font-size: 14px;
+    white-space: nowrap;
+}
+.context-menu-item:hover {
+    background: #f0f2f5;
+}
+.context-menu-item img {
+    width: 16px;
+    height: 16px;
+    margin-right: 10px;
+}
+
+/* Стили для кнопок при редактировании сообщения */
+.edit-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+.edit-actions button {
+    padding: 4px 10px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    cursor: pointer;
+}
+
+/* Добавьте это в style.css для красивого выравнивания галочек */
+.setting-item .checkbox-wrapper {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    width: 60px; /* Та же ширина, что и у полей ввода чисел */
+}
+/* --- CHECKERS PAGE --- */
+.checkers-page {
+    background: #121212;
+    color: #f1f1f1;
+    margin: 0;
+    font-family: Arial, sans-serif;
+}
+
+.checkers-layout {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.checkers-panel {
+    width: min(720px, 90vw);
+}
+
+.checkers-board {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    border: 2px solid #3a3a3a;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.cell {
+    aspect-ratio: 1 / 1;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.cell.light { background: #e4c28a; }
+.cell.dark { background: #8b5a2b; }
+.cell.selected { outline: 3px solid #61dafb; }
+
+.piece {
+    width: 70%;
+    height: 70%;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.piece.white { background: #f8f8f8; box-shadow: inset 0 0 0 3px #d2d2d2; }
+.piece.black { background: #212121; box-shadow: inset 0 0 0 3px #666; }
+
+.assistant-widget {
+    position: fixed;
+    right: 18px;
+    bottom: 18px;
+    width: min(360px, calc(100vw - 36px));
+    background: rgba(20, 20, 20, 0.86);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    backdrop-filter: blur(6px);
+    z-index: 999;
+}
+
+.assistant-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.assistant-chat-body { padding: 10px; }
+
+.assistant-messages {
+    max-height: 220px;
+    overflow-y: auto;
+    margin-bottom: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.assistant-msg {
+    padding: 8px 10px;
+    border-radius: 10px;
+    font-size: 14px;
+}
+
+.assistant-msg.user { background: rgba(97, 218, 251, 0.25); align-self: flex-end; }
+.assistant-msg.assistant, .assistant-msg.system { background: rgba(255, 255, 255, 0.12); align-self: flex-start; }
+
+.assistant-input-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.assistant-input-row input {
+    flex: 1;
+    min-width: 0;
+}

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- БЛОК 1: ЗАГОЛОВОК СТРАНИЦЫ -->
+    <!-- Сюда будет вставлен заголовок из дочернего шаблона (например, "Чат с ассистентом") -->
+    <title>{% block title %}Anime Assistant{% endblock %}</title>
+    
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    
+    <!-- БЛОК 2: ДОПОЛНИТЕЛЬНЫЕ СКРИПТЫ В <HEAD> -->
+    <!-- Сюда index.html вставит скрипт с конфигурацией APP_CONFIG -->
+    {% block head_scripts %}{% endblock %}
+</head>
+<body>
+    <div class="app-container">
+        <!-- Кнопка для открытия меню, присутствует на всех страницах -->
+        <button id="menu-toggle-btn">☰</button>
+
+        <!-- Выдвижное меню (сайдбар), общее для всех страниц -->
+        <div id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <h3>Меню</h3>
+                <button id="sidebar-close-btn">×</button>
+            </div>
+            <nav class="sidebar-nav">
+                <!-- Эти кнопки управляются JavaScript для переключения вкладок ВНУТРИ index.html -->
+                <button class="nav-btn active" data-view="profile-view">Ваш профиль</button>
+                <button class="nav-btn" data-view="assistants-view">Ассистенты</button>
+                <button class="nav-btn" data-view="chats-view">Чаты</button>
+            </nav>
+            <div class="sidebar-content">
+                <!-- БЛОК 3: СОДЕРЖИМОЕ БОКОВОЙ ПАНЕЛИ -->
+                <!-- Сюда будет вставлен контент из дочернего шаблона -->
+                {% block sidebar_content %}{% endblock %}
+            </div>
+        </div>
+
+        <!-- Основной контент страницы, меняется в зависимости от страницы -->
+        <div class="main-content">
+            <!-- БЛОК 4: ОСНОВНОЙ КОНТЕНТ -->
+            <!-- Сюда будет вставлен чат ИЛИ редактор ассистента -->
+            {% block main_content %}{% endblock %}
+        </div>
+    </div>
+
+    <!-- Общий скрипт для всех страниц (управляет меню и другими общими элементами) -->
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    
+    <!-- БЛОК 5: ДОПОЛНИТЕЛЬНЫЕ СКРИПТЫ В КОНЦЕ BODY -->
+    <!-- Сюда index.html вставит библиотеки для Live2D, а edit_assistant.html - свой скрипт -->
+    {% block body_scripts %}{% endblock %}
+</body>
+</html>
