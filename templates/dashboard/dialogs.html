@@ -1,0 +1,42 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}Диалоги{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Диалоги</h1>
+        <p>Все разговоры с посетителями. Если клиент попросит человека — диалог появится сверху, и вы сможете ответить вместо ассистента.</p>
+    </div>
+    <div class="page-actions">
+        {% if assistants %}
+        <a class="btn btn-ghost" href="{{ url_for('demo_site', assistant_id=assistants[0].id) }}" target="_blank">{{ icon('external', 18) }} Демо-сайт с виджетом</a>
+        {% endif %}
+        <a class="btn btn-primary" href="{{ url_for('index') }}">{{ icon('play', 18) }} Новый тестовый чат</a>
+    </div>
+</div>
+
+<div class="inbox" id="inbox" data-initial="{{ initial_chat_id or '' }}">
+    <div class="inbox-list">
+        <div class="inbox-tools">
+            <div class="search">{{ icon('search', 16) }}<input class="input" id="dlg-search" placeholder="Поиск по имени и тексту"></div>
+            <div class="filters" id="dlg-filters">
+                <button class="active" data-f="all">Все <i data-c="all"></i></button>
+                <button data-f="waiting">Ждут оператора <i data-c="waiting"></i></button>
+                <button data-f="operator">У оператора <i data-c="operator"></i></button>
+                <button data-f="ai">Ассистент <i data-c="ai"></i></button>
+            </div>
+        </div>
+        <div class="conv-list" id="conv-list"></div>
+    </div>
+
+    <div class="thread" id="thread">
+        <div class="empty" id="thread-empty" style="margin:auto">
+            <div class="ill">{{ icon('dialogs', 30) }}</div>
+            <h3>Выберите диалог</h3>
+            <p>Слева — разговоры из студии и с сайтов, где стоит виджет.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='dialogs.js') }}"></script>
+{% endblock %}

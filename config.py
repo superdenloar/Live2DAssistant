@@ -1,18 +1,42 @@
-      
 # =======================================================
 #      ОСНОВНЫЕ НАСТРОЙКИ СЕРВЕРА И МОДЕЛЕЙ
 # =======================================================
 
-# --- Настройки LM Studio ---
-ENABLE_LM_STUDIO = True  # Поставьте False, чтобы тестировать интерфейс без нейросети
+# --- Настройки нейросети (Elysium AI / OpenAI-совместимый API) ---
+ENABLE_AI = True          # Поставьте False, чтобы тестировать интерфейс без нейросети
+ENABLE_LM_STUDIO = True   # Оставлено для обратной совместимости
+
+# Провайдер по умолчанию: 'elysium' (Elysium AI), 'lm_studio' (локальный LM Studio), 'custom'
+AI_PROVIDER = "elysium"
+
+# --- Elysium AI ---
+# Базовый URL единого OpenAI-совместимого API Elysium AI
+ELYSIUM_API_URL = "https://elysiumai.garden/v1"
+
+# Ваш персональный API-ключ Elysium AI (формат: sk-...).
+# Можно также ввести и сохранить прямо в браузере в меню «Нейросеть (API)».
+ELYSIUM_API_KEY = ""
+
+# Модель по умолчанию: deepseek-v4-flash (Antigravity 4 deepseek-v4-flash)
+ELYSIUM_MODEL = "deepseek-v4-flash"
+
+# Креативность ответов (0.0 - 1.5)
+AI_TEMPERATURE = 0.7
+
+# --- Резервный локальный сервер LM Studio ---
 LM_STUDIO_URL = "http://127.0.0.1:1234/v1"
-LM_STUDIO_MODEL = "gemma-3n-e4b-it-text"
+LM_STUDIO_MODEL = "deepseek-v4-flash"
 
 # --- Настройки системного промпта ---
-# Указывает на файл, в котором лежит "характер" вашей девушки
+# Указывает на файл, в котором лежит шаблон характера и правила команд
 SYSTEM_PROMPT_FILE = "system_prompt.txt"
 
-# --- Настройки синтеза речи (TTS) Silero ---
+# --- Настройки синтеза речи (TTS) и распознавания (STT) ---
+# На локальной машине включены по умолчанию. Если отключить (False),
+# сервер будет работать без синтеза или распознавания речи без ошибок.
+ENABLE_TTS = True
+ENABLE_STT = True
+
 # Путь к локально скачанной модели голоса
 SILERO_MODEL_PATH = "static/silero_models/model.pt"
 

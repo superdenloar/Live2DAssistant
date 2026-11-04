@@ -1,0 +1,116 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}Аккаунт{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Аккаунт</h1>
+        <p>Как вас видят коллеги и ассистенты. Имя и описание ассистенты используют, когда разговаривают с вами в студии.</p>
+    </div>
+</div>
+
+<div class="two-col">
+    <div class="stack">
+        <section class="panel">
+            <div class="account-hero">
+                <div id="avatar-box">
+                    {% if user.avatar_url %}<img class="avatar lg" id="acc-avatar" src="{{ url_for('static', filename=user.avatar_url) }}" alt="">
+                    {% else %}<span class="avatar lg" id="acc-avatar">{{ (user.name or 'А')[:1] }}</span>{% endif %}
+                </div>
+                <div>
+                    <h2 style="font-size:22px">{{ user.name or 'Администратор' }}</h2>
+                    <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><span class="badge">{{ icon('shield', 14) }} Администратор</span><span class="badge grey">{{ user.company or 'Live2D Assistant' }}</span></div>
+                    <div class="avatar-actions">
+                        <button class="btn btn-soft btn-sm" id="avatar-upload-btn">{{ icon('upload', 16) }} Загрузить фото</button>
+                        <button class="btn btn-ghost btn-sm" id="avatar-remove-btn" {% if not user.avatar_url %}hidden{% endif %}>Убрать</button>
+                        <input type="file" id="avatar-file" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
+                    </div>
+                    <p class="hint" style="margin-top:8px">Квадратная картинка от 256×256 — обрежем по кругу.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-head"><div><h2>Профиль</h2></div></div>
+            <form id="profile-form">
+                <div class="grid-2">
+                    <div class="field"><label for="p-name">Имя</label><input type="text" id="p-name" name="name" value="{{ user.name or '' }}"></div>
+                    <div class="field"><label for="p-company">Компания</label><input type="text" id="p-company" name="company" value="{{ user.company or '' }}"></div>
+                </div>
+                <div class="field"><label for="p-email">Почта</label><input type="email" id="p-email" name="email" value="{{ user.email or '' }}"></div>
+                <div class="field"><label for="p-desc">О себе — для ассистентов</label>
+                    <textarea id="p-desc" name="description" rows="4" placeholder="Например: руководитель поддержки, люблю короткие ответы">{{ user.description or '' }}</textarea>
+                    <span class="hint">Подставляется в контекст, когда вы общаетесь с ассистентом в студии.</span></div>
+                <div style="display:flex;justify-content:flex-end"><button class="btn btn-primary" type="submit">Сохранить профиль</button></div>
+            </form>
+        </section>
+    </div>
+
+    <div class="stack">
+        <section class="panel">
+            <div class="panel-head"><div><h2>Безопасность</h2></div></div>
+            <div class="toggle-row"><div><div class="t-title">Пароль</div><div class="t-desc">Вход по паролю появится вместе с регистрацией</div></div><span class="badge butter">В разработке</span></div>
+            <div class="toggle-row"><div><div class="t-title">Двухфакторная защита</div><div class="t-desc">Код из приложения при входе</div></div><span class="badge butter">В разработке</span></div>
+            <div class="toggle-row"><div><div class="t-title">Текущая сессия</div><div class="t-desc">Этот браузер · вход как администратор</div></div><a class="btn btn-ghost btn-sm" href="{{ url_for('logout') }}">Выйти</a></div>
+        </section>
+        <section class="panel">
+            <div class="panel-head"><div><h2>Команда</h2><p>Операторы и разработчики компании</p></div><button class="btn btn-soft btn-sm" data-soon="Приглашения в команду в разработке">{{ icon('plus', 16) }} Пригласить</button></div>
+            <div class="toggle-row"><div style="display:flex;gap:10px;align-items:center">
+                {% if user.avatar_url %}<img class="avatar sm" src="{{ url_for('static', filename=user.avatar_url) }}" alt="">{% else %}<span class="avatar sm">{{ (user.name or 'А')[:1] }}</span>{% endif %}
+                <div><div class="t-title">{{ user.name or 'Администратор' }}</div><div class="t-desc">{{ user.email }}</div></div></div><span class="badge">Владелец</span></div>
+        </section>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+    const file = document.getElementById('avatar-file');
+    document.getElementById('avatar-upload-btn').addEventListener('click', () => file.click());
+    // Обрезаем картинку по центру в квадрат 320×320 прямо в браузере
+    function squareBlob(f) {
+        return new Promise((ok, fail) => {
+            const img = new Image();
+            img.onload = () => {
+                const s = Math.min(img.width, img.height), c = document.createElement('canvas');
+                c.width = c.height = 320;
+                c.getContext('2d').drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, 320, 320);
+                c.toBlob(ok, 'image/png');
+            };
+            img.onerror = fail;
+            img.src = URL.createObjectURL(f);
+        });
+    }
+    function setAvatar(url) {
+        document.querySelectorAll('#acc-avatar, .account-chip .avatar').forEach(el => {
+            if (url) {
+                const img = document.createElement('img'); img.className = el.className; img.src = url; img.alt = '';
+                if (el.id) img.id = el.id;
+                el.replaceWith(img);
+            } else {
+                const span = document.createElement('span'); span.className = el.className; if (el.id) span.id = el.id;
+                span.textContent = (document.getElementById('p-name').value || 'А').slice(0, 1);
+                el.replaceWith(span);
+            }
+        });
+        document.getElementById('avatar-remove-btn').hidden = !url;
+    }
+    file.addEventListener('change', async () => {
+        if (!file.files[0]) return;
+        try {
+            const fd = new FormData(); fd.append('avatar', await squareBlob(file.files[0]), 'avatar.png');
+            const d = await Dash.api('/api/admin/account/avatar', { method: 'POST', body: fd });
+            setAvatar(d.avatar_url + '?v=' + Date.now()); Dash.toast('Фото обновлено');
+        } catch (e) { Dash.toast(e.message, 'err'); }
+    });
+    document.getElementById('avatar-remove-btn').addEventListener('click', async () => {
+        await Dash.api('/api/admin/account/avatar', { method: 'DELETE' }); setAvatar(null); Dash.toast('Фото удалено');
+    });
+    document.getElementById('profile-form').addEventListener('submit', async e => {
+        e.preventDefault();
+        const data = Object.fromEntries(new FormData(e.target));
+        try { await Dash.api('/api/admin/account', { json: data }); Dash.toast('Профиль сохранён'); document.querySelector('.account-chip .who span').textContent = data.name; }
+        catch (err) { Dash.toast(err.message, 'err'); }
+    });
+})();
+</script>
+{% endblock %}

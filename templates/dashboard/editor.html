@@ -1,0 +1,512 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}{{ assistant.name }} · редактор{% endblock %}
+{% block head %}
+<link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
+<script>
+    var ALL_SPEAKERS = {{ all_speakers_json|safe }};
+    var EDITOR = {{ {'id': assistant.id, 'avatar': avatar_json}|tojson }};
+</script>
+{% endblock %}
+{% set atype = assistant.avatar_type or 'live2d' %}
+{% macro slider(name, id, label, min, max, step, value, hint='') -%}
+<div class="field">
+    <label for="{{ id }}">{{ label }}</label>
+    <div class="range-row">
+        <input type="range" name="{{ name }}" id="{{ id }}" min="{{ min }}" max="{{ max }}" step="{{ step }}" value="{{ value }}">
+        <input type="number" class="input" data-mirror="{{ id }}" step="any" value="{{ value }}" aria-label="{{ label }}" title="Можно ввести любое число — ползунок подстроится">
+    </div>
+    {% if hint %}<span class="hint">{{ hint }}</span>{% endif %}
+</div>
+{%- endmacro %}
+
+{% block content %}
+<div class="page-head">
+    <div>
+        <a href="{{ url_for('dash_assistants') }}" class="small">{{ icon('arrow-left', 14) }} Все ассистенты</a>
+        <h1 style="margin-top:8px">Редактор ассистента</h1>
+    </div>
+    <div class="page-actions">
+        <a class="btn btn-ghost" href="{{ url_for('index', assistant=assistant.id) }}">{{ icon('play', 18) }} Поговорить в студии</a>
+        <a class="btn btn-ghost" href="{{ url_for('test_site', a=assistant.id) }}" target="_blank">{{ icon('globe', 18) }} На тестовом сайте</a>
+        <button type="button" class="btn btn-ghost" id="embed-open">{{ icon('code', 18) }} Код для сайта</button>
+    </div>
+</div>
+
+<form id="editor-form" action="{{ url_for('update_assistant', assistant_id=assistant.id) }}" method="POST">
+<div class="editor">
+    <!-- ===== Левая колонка: живое превью ===== -->
+    <div class="stage-col">
+        <div class="stage" id="stage">
+            <span class="badge stage-tag" id="stage-tag">Превью</span>
+            <canvas id="live2d-canvas-editor"></canvas>
+            <div id="gif-stage" style="position:absolute;inset:0;display:none"></div>
+            <div id="model3d-stage" style="position:absolute;inset:0;display:none"></div>
+            <div class="stage-empty" id="gif-empty" style="display:none"><div><b style="color:var(--ink)">Загрузите GIF или две картинки</b><p class="small" style="margin-top:6px">Вкладка «Внешность» → GIF / PNG-тубер</p></div></div>
+            <div class="stage-empty" id="stage-empty" style="display:none">
+                <div>
+                    <div class="empty"><div class="ill">{{ icon('text', 30) }}</div></div>
+                    <b style="color:var(--ink)">Чат-бот без аватара</b>
+                    <p class="small" style="margin-top:6px">На сайте появится аккуратное окно чата с голосом — без персонажа.</p>
+                </div>
+            </div>
+            <div class="speech" id="stage-speech"></div>
+        </div>
+        <div class="panel" style="padding:16px">
+            <div class="label" style="margin-bottom:8px">Проверить голос и мимику</div>
+            <div class="stage-tools">
+                <input type="text" class="input" id="tts-test-input" placeholder="Привет! Я помогу с заказом." value="Привет! Я ваш новый ассистент. Чем могу помочь?">
+                <button type="button" class="btn btn-primary" id="tts-test-btn">{{ icon('play', 16) }} Озвучить</button>
+            </div>
+            <div class="label" style="margin:14px 0 8px">Движения по командам</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap" id="cmd-test">
+                <button type="button" class="btn btn-ghost btn-sm" data-cmd="NOD_HEAD">Кивнуть</button>
+                <button type="button" class="btn btn-ghost btn-sm" data-cmd="SHAKE_HEAD">Покачать головой</button>
+                <button type="button" class="btn btn-ghost btn-sm" data-cmd="LOOK_LEFT">Влево</button>
+                <button type="button" class="btn btn-ghost btn-sm" data-cmd="LOOK_RIGHT">Вправо</button>
+                <button type="button" class="btn btn-ghost btn-sm" data-cmd="HEAD_TILT_LEFT">Наклон</button>
+                <button type="button" class="btn btn-ghost btn-sm" data-cmd="RESET">Сброс</button>
+            </div>
+            <div class="label" style="margin:14px 0 8px">Захват лица <span class="badge butter">по приколу</span></div>
+            <button type="button" class="btn btn-soft btn-sm" id="face-cam-btn">{{ icon('video', 16) }} Управлять с веб-камеры</button>
+            <span class="hint" style="display:block;margin-top:6px">Повороты головы, рот и моргание повторяют ваше лицо. Видео никуда не отправляется.</span>
+        </div>
+    </div>
+
+    <!-- ===== Правая колонка: настройки ===== -->
+    <div>
+        <div class="editor-tabs" role="tablist">
+            <button type="button" class="active" data-tab="t-main">{{ icon('user', 16) }} Основное</button>
+            <button type="button" data-tab="t-look">{{ icon('palette', 16) }} Внешность</button>
+            <button type="button" data-tab="t-voice">{{ icon('mic', 16) }} Голос</button>
+            <button type="button" data-tab="t-behavior">{{ icon('heart', 16) }} Поведение</button>
+            <button type="button" data-tab="t-widget">{{ icon('globe', 16) }} Виджет</button>
+        </div>
+
+        <!-- Основное -->
+        <section class="tab-pane active" id="t-main">
+            <div class="panel">
+                <div class="identity">
+                    <div class="avatar-edit" id="avatar-edit" title="Сменить аватар">
+                        <img class="editor-avatar" src="{{ url_for('static', filename=assistant.photo_url.lstrip('/')) }}" alt="">
+                        <span>Изменить</span>
+                    </div>
+                    <div style="flex:1;min-width:0">
+                        <input type="text" name="name" class="name-input" value="{{ assistant.name }}" aria-label="Имя ассистента" required>
+                        <input type="text" name="description" class="input" style="margin-top:10px" value="{{ assistant.description or '' }}" placeholder="Коротко: кто это и чем помогает">
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-head">
+                    <div><h2>Характер</h2><p>Системный промпт: кто ассистент, как говорит и что ему можно</p></div>
+                    <div style="display:flex;gap:8px">
+                        <button type="button" class="btn btn-ghost btn-sm" id="load-default-prompt-btn">Из шаблона</button>
+                        <button type="button" class="btn btn-soft btn-sm" id="insert-commands-btn">{{ icon('wand', 14) }} Добавить команды движений</button>
+                    </div>
+                </div>
+                <div class="field">
+                    <textarea name="system_prompt" id="system-prompt-textarea" rows="12" placeholder="Опиши характер, имя и стиль общения...">{{ assistant.system_prompt }}</textarea>
+                </div>
+                <div class="label" style="margin-bottom:8px">Команды движений — нажмите, чтобы вставить</div>
+                <div class="cmd-grid" id="cmd-grid">
+                    {% for cmd, d in [('Киваю головой','согласие'),('Махаю головой','несогласие'),('Посмотреть влево','взгляд влево'),('Посмотреть вправо','взгляд вправо'),('Посмотреть вверх','задумчивость'),('Посмотреть вниз','смущение'),('Слежу за курсором','следит за мышью'),('Голова влево','наклон влево'),('Голова вправо','наклон вправо'),('Закрыть левый глаз','подмигнуть'),('Закрыть правый глаз','подмигнуть')] %}
+                    <button type="button" class="cmd-chip" data-insert="【{{ cmd }}】"><code>【{{ cmd }}】</code><span>{{ d }}</span></button>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-head"><div><h2>Модель ИИ</h2><p>По умолчанию используется модель из настроек компании</p></div></div>
+                <div class="grid-2">
+                    <div class="field">
+                        <label for="assistant-model-select">Модель</label>
+                        <select id="assistant-model-select">
+                            {% set known = ['deepseek-v4-flash','deepseek/deepseek-v4.1-flash','deepseek/deepseek-chat','deepseek/deepseek-r1'] %}
+                            <option value="" {% if not assistant.model_name %}selected{% endif %}>Как в настройках ({{ api_settings.model_name }})</option>
+                            {% for m in known %}<option value="{{ m }}" {% if assistant.model_name == m %}selected{% endif %}>{{ m }}</option>{% endfor %}
+                            <option value="custom" {% if assistant.model_name and assistant.model_name not in known %}selected{% endif %}>Другая…</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label for="assistant-model-name">Название модели</label>
+                        <input type="text" name="model_name" id="assistant-model-name" value="{{ assistant.model_name or '' }}" placeholder="пусто — как в настройках">
+                    </div>
+                </div>
+                {{ slider('memory_depth', 'memory-depth', 'Память диалога, сообщений', 1, 100, 1, assistant.memory_depth, 'Сколько последних реплик ассистент учитывает в ответе') }}
+            </div>
+
+            <div class="panel" style="border-color:#F6D3DA">
+                <div class="panel-head" style="margin:0">
+                    <div><h2>Удалить ассистента</h2><p>Вместе с ним удалятся все его диалоги. Отменить нельзя.</p></div>
+                    <button type="button" class="btn btn-danger" data-open="delete-modal">{{ icon('trash', 16) }} Удалить</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Внешность -->
+        <section class="tab-pane" id="t-look">
+            <div class="panel">
+                <div class="panel-head"><div><h2>Тип аватара</h2><p>Как ассистент выглядит в студии и на сайтах</p></div></div>
+                <input type="hidden" name="avatar_type" id="avatar-type" value="{{ atype }}">
+                <div class="type-grid" id="type-switch">
+                    {% for t in avatar_types %}
+                    <button type="button" class="type-opt {% if not t.ready %}soon{% endif %} {% if t.id == atype %}selected{% endif %}" data-type="{{ t.id }}">
+                        {% if not t.ready %}<span class="badge butter">В разработке</span>{% endif %}
+                        <span class="t-ic">{{ icon({'live2d':'live2d','gif':'gif','text':'text','3d':'cube','vrm':'cube','video':'video','voice':'mic'}[t.id], 20) }}</span>
+                        <b>{{ t.name }}</b>
+                    </button>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="panel look-section" data-for="live2d">
+                <div class="panel-head"><div><h2>Live2D-модель</h2><p>Модели лежат в папке <code>static/Live2d_models</code></p></div></div>
+                <div class="field">
+                    <label for="live2d-model-select">Модель</label>
+                    <select name="live2d_model" id="live2d-model-select">
+                        <option value="">— Не выбрано —</option>
+                        {% for m in live2d_models %}
+                        <option value="{{ m.path }}" {% if m.path == assistant.live2d_model_path %}selected{% endif %}>{{ m.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {{ slider('scale', 'model-scale', 'Масштаб', 0.05, 10, 0.05, assistant.scale) }}
+                <div class="grid-2">
+                    {{ slider('pos_x', 'model-pos-x', 'Сдвиг по горизонтали', -2000, 2000, 1, assistant.pos_x) }}
+                    {{ slider('pos_y', 'model-pos-y', 'Сдвиг по вертикали', -3000, 3000, 1, assistant.pos_y) }}
+                </div>
+            </div>
+
+            <div class="panel look-section" data-for="gif">
+                <div class="panel-head">
+                    <div><h2>GIF / PNG-тубер</h2><p>Работает как GIF-VTuber: тишина — первый кадр, максимальная громкость — последний</p></div>
+                </div>
+                <div class="field">
+                    <span class="label">Что загружаем</span>
+                    <div class="segmented" id="gif-mode-switch">
+                        <label><input type="radio" name="gif_mode" value="frames" {% if (assistant.gif_mode or 'frames') == 'frames' %}checked{% endif %}><span>Один GIF</span></label>
+                        <label><input type="radio" name="gif_mode" value="swap" {% if assistant.gif_mode == 'swap' %}checked{% endif %}><span>Две PNG: молчит / говорит</span></label>
+                    </div>
+                    <span class="hint" id="gif-mode-hint"></span>
+                </div>
+
+                <div class="gif-mode" data-mode="frames">
+                    <div class="asset" data-slot="source">
+                        <img class="asset-thumb" alt="" {% if not assistant.gif_source_url %}hidden{% endif %} src="{{ assistant.gif_source_url or '' }}">
+                        <div class="asset-info">
+                            <b class="asset-title">{{ 'GIF загружен' if assistant.gif_source_url else 'GIF ещё не загружен' }}</b>
+                            <span class="asset-sub" id="frames-count"></span>
+                            <div class="asset-actions">
+                                <button type="button" class="btn btn-soft btn-sm" data-pick>{{ icon('upload', 14) }} <span>{{ 'Заменить GIF' if assistant.gif_source_url else 'Загрузить GIF' }}</span></button>
+                                <button type="button" class="btn btn-ghost btn-sm" data-reverse {% if not assistant.gif_source_url %}hidden{% endif %}>{{ icon('refresh', 14) }} Развернуть кадры</button>
+                                <button type="button" class="btn btn-ghost btn-sm" data-clear {% if not assistant.gif_source_url %}hidden{% endif %}>{{ icon('trash', 14) }} Удалить</button>
+                            </div>
+                        </div>
+                        <input type="file" accept="image/gif,image/webp" hidden>
+                    </div>
+                    <div class="frames-bar" id="frames-bar" hidden>
+                        <span class="hint" id="frames-enabled"></span>
+                        <button type="button" class="btn btn-ghost btn-sm" id="frames-all">Включить все</button>
+                    </div>
+                    <div class="frames-grid" id="frames-strip"></div>
+                </div>
+
+                <div class="gif-mode grid-2" data-mode="swap">
+                    {% for slot, title in [('idle', 'Молчит'), ('talk', 'Говорит')] %}
+                    {% set url = assistant['gif_' ~ slot ~ '_url'] %}
+                    <div class="asset vertical" data-slot="{{ slot }}">
+                        <img class="asset-thumb" alt="" {% if not url %}hidden{% endif %} src="{{ url or '' }}">
+                        <div class="asset-info">
+                            <b class="asset-title">{{ title }}</b>
+                            <span class="asset-sub">{{ 'PNG, JPG, WEBP или GIF' }}</span>
+                            <div class="asset-actions">
+                                <button type="button" class="btn btn-soft btn-sm" data-pick>{{ icon('upload', 14) }} <span>{{ 'Заменить' if url else 'Загрузить' }}</span></button>
+                                <button type="button" class="btn btn-ghost btn-sm" data-clear {% if not url %}hidden{% endif %}>{{ icon('trash', 14) }}</button>
+                            </div>
+                        </div>
+                        <input type="file" accept="image/*" hidden>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="chroma" id="chroma">
+                    <div class="toggle-row" style="padding-top:0">
+                        <div><div class="t-title">Убрать фон (хромакей)</div><div class="t-desc">Зелёный экран или любой другой цвет. Нажмите на картинку «Было», чтобы взять цвет пипеткой.</div></div>
+                        <label class="switch"><input type="checkbox" id="chroma-on"><span class="track"></span></label>
+                    </div>
+                    <div class="chroma-body" id="chroma-body">
+                        <div class="chroma-preview">
+                            <figure><canvas id="chroma-before" title="Нажмите, чтобы выбрать цвет фона"></canvas><figcaption>Было · пипетка</figcaption></figure>
+                            <figure><canvas id="chroma-after"></canvas><figcaption>Станет</figcaption></figure>
+                        </div>
+                        <div class="chroma-controls">
+                            <div class="field">
+                                <span class="label">Цвет фона</span>
+                                <div class="chroma-colors">
+                                    <input type="color" id="chroma-color" value="#00ff00" aria-label="Цвет фона">
+                                    <button type="button" class="swatch" data-color="#00ff00" style="background:#00ff00" title="Зелёный экран"></button>
+                                    <button type="button" class="swatch" data-color="#0047bb" style="background:#0047bb" title="Синий экран"></button>
+                                    <button type="button" class="swatch" data-color="#ffffff" style="background:#ffffff" title="Белый"></button>
+                                    <button type="button" class="swatch" data-color="#000000" style="background:#000000" title="Чёрный"></button>
+                                </div>
+                            </div>
+                            <div class="field"><label for="chroma-tol">Допуск: <span id="chroma-tol-v"></span></label><input type="range" id="chroma-tol" min="0" max="60" step="1"><span class="hint">Больше — убирает и похожие оттенки</span></div>
+                            <div class="field"><label for="chroma-soft">Мягкость края: <span id="chroma-soft-v"></span></label><input type="range" id="chroma-soft" min="0" max="40" step="1"></div>
+                            <label class="switch"><input type="checkbox" id="chroma-despill"><span class="track"></span><span>Убрать цветной ореол по краю</span></label>
+                            <button type="button" class="btn btn-primary" id="chroma-apply" style="margin-top:14px">Применить ко всем кадрам</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top:18px">
+                    <div class="grid-2">
+                        {{ slider('gif_scale', 'gif-scale', 'Размер', 0.1, 10, 0.05, assistant.gif_scale or 1.0) }}
+                        {{ slider('gif_offset_y', 'gif-offset', 'Сдвиг по вертикали', -1500, 1500, 1, assistant.gif_offset_y or 0) }}
+                        {{ slider('gif_noise_floor', 'gif-noise', 'Порог тишины', 0, 0.1, 0.001, assistant.gif_noise_floor if assistant.gif_noise_floor is not none else 0.008, 'Тише этого — первый кадр (в example.py 0.008)') }}
+                        {{ slider('gif_smoothing', 'gif-smooth', 'Плавность', 0.05, 0.9, 0.01, assistant.gif_smoothing if assistant.gif_smoothing is not none else 0.35, 'Меньше — плавнее, больше — резче (0.35)') }}
+                    </div>
+                    <label class="switch"><input type="checkbox" name="gif_breathing" id="gif-breathing" {% if assistant.gif_breathing is none or assistant.gif_breathing %}checked{% endif %}><span class="track"></span><span>Лёгкое «дыхание» в покое</span></label>
+                </div>
+            </div>
+
+            <div class="panel look-section" data-for="3d">
+                <div class="panel-head">
+                    <div><h2>3D-модель <span class="badge butter">Бета</span></h2><p>Файл .glb. Модель дышит, поворачивается к курсору, кивает по командам и подпрыгивает в такт речи. В превью её можно крутить мышью.</p></div>
+                </div>
+                {% set m3 = avatar_json.model3d %}
+                <div class="grid-2">
+                    <div class="field">
+                        <label for="model3d-select">Модель</label>
+                        <select name="model3d_url" id="model3d-select">
+                            <option value="">— Не выбрано —</option>
+                            {% for m in models3d %}<option value="{{ m.path }}" {% if m.path == m3.url %}selected{% endif %}>{{ m.name }} · {{ m.size_mb }} МБ</option>{% endfor %}
+                        </select>
+                        <span class="hint">Файлы лежат в папке <code>static/models3d</code></span>
+                    </div>
+                    <div class="field">
+                        <span class="label">Своя модель</span>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap">
+                            <button type="button" class="btn btn-soft" id="model3d-upload-btn">{{ icon('upload', 16) }} Загрузить .glb</button>
+                            <button type="button" class="btn btn-ghost" id="model3d-snap-btn" title="Сделать аватарку из текущего вида модели">{{ icon('image', 16) }} Аватар из 3D</button>
+                        </div>
+                        <input type="file" id="model3d-file" accept=".glb,model/gltf-binary" hidden>
+                    </div>
+                </div>
+                <div class="grid-2">
+                    {{ slider('model3d_scale', 'm3-scale', 'Размер', 0.1, 10, 0.05, m3.scale) }}
+                    {{ slider('model3d_offset_y', 'm3-offset', 'Сдвиг по вертикали', -1000, 1000, 1, m3.offset_y) }}
+                    {{ slider('model3d_rotate_y', 'm3-rotate', 'Поворот, градусы', -180, 180, 1, m3.rotate_y) }}
+                </div>
+                <label class="switch"><input type="checkbox" name="model3d_follow" id="m3-follow" {% if m3.follow %}checked{% endif %}><span class="track"></span><span>Поворачиваться к курсору</span></label>
+                <div class="callout" style="margin-top:16px">{{ icon('sparkles', 18) }}<span>У модели нет скелета и мимики, поэтому она двигается целиком. Полноценные VRM-персонажи с губами и морганием — в разработке.</span></div>
+            </div>
+
+            <div class="panel look-section" data-for="text">
+                <div class="empty" style="padding:24px">
+                    <div class="ill">{{ icon('text', 30) }}</div>
+                    <h3>Без персонажа</h3>
+                    <p>Виджет покажет только окно чата. Голос, оператор и аналитика продолжают работать.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Голос -->
+        <section class="tab-pane" id="t-voice">
+            <div class="panel">
+                <div class="panel-head"><div><h2>Голос</h2><p>Синтез речи Silero, работает локально</p></div></div>
+                <div class="grid-2">
+                    <div class="field">
+                        <label for="silero-model-select">Голосовая модель</label>
+                        <select name="tts_model" id="silero-model-select">
+                            <option value="">— Не выбрано —</option>
+                            {% for f in tts_models %}<option value="{{ f }}" {% if assistant.tts_model_path and (f ~ '.pt') in assistant.tts_model_path %}selected{% endif %}>{{ f }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label for="silero-speaker-select">Голос</label>
+                        <select name="tts_speaker" id="silero-speaker-select">
+                            {% for s in current_speakers %}<option value="{{ s }}" {% if s == assistant.tts_speaker %}selected{% endif %}>{{ s }}</option>{% endfor %}
+                            {% if not current_speakers %}<option value="{{ assistant.tts_speaker or 'kseniya' }}">{{ assistant.tts_speaker or 'kseniya' }}</option>{% endif %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="panel">
+                <div class="panel-head"><div><h2>Движение губ</h2><p>Для Live2D: как широко открывается рот при речи</p></div></div>
+                <div class="grid-2">
+                    {{ slider('mouth_min_open', 'mouth-min', 'Минимум', 0, 1, 0.01, assistant.mouth_min_open) }}
+                    {{ slider('mouth_max_open', 'mouth-max', 'Максимум', 0, 1, 0.01, assistant.mouth_max_open) }}
+                    {{ slider('mouth_jitter_strength', 'mouth-jitter-str', 'Живость', 0, 0.5, 0.01, assistant.mouth_jitter_strength) }}
+                    {{ slider('mouth_jitter_speed', 'mouth-jitter-speed', 'Частота', 10, 200, 1, assistant.mouth_jitter_speed) }}
+                </div>
+            </div>
+        </section>
+
+        <!-- Поведение -->
+        <section class="tab-pane" id="t-behavior">
+            <div class="panel">
+                <div class="panel-head"><div><h2>Инициатива</h2><p>Ассистент сам заговорит, если посетитель долго молчит</p></div>
+                    <label class="switch"><input type="checkbox" name="boredom_enabled" id="boredom-enabled" {% if assistant.boredom_enabled %}checked{% endif %}><span class="track"></span></label>
+                </div>
+                <div class="grid-2">
+                    <div class="field"><label>Не раньше, сек</label><input type="number" name="boredom_min_time" value="{{ assistant.boredom_min_time }}"></div>
+                    <div class="field"><label>Не позже, сек</label><input type="number" name="boredom_max_time" value="{{ assistant.boredom_max_time }}"></div>
+                </div>
+                <div class="toggle-row">
+                    <div><div class="t-title">Придумывать фразы через ИИ</div><div class="t-desc">Иначе — случайная фраза из списка ниже</div></div>
+                    <label class="switch"><input type="checkbox" name="boredom_use_llm" id="boredom-use-llm" {% if assistant.boredom_use_llm %}checked{% endif %}><span class="track"></span></label>
+                </div>
+                <div class="label" style="margin:14px 0 8px">Фразы</div>
+                <div class="phrase-list" id="boredom-phrases-list">
+                    {% for p in boredom_phrases %}
+                    <div class="phrase" data-id="{{ p.id }}"><span>{{ p.text }}</span>
+                        <button type="button" class="btn btn-icon test-phrase-btn" title="Озвучить">{{ icon('play', 16) }}</button>
+                        <button type="button" class="btn btn-icon delete-phrase-btn" title="Удалить">{{ icon('trash', 16) }}</button>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="add-row">
+                    <input type="text" class="input" id="new-boredom-phrase-input" placeholder="Например: Если что — я рядом!">
+                    <button type="button" class="btn btn-soft" id="add-boredom-phrase-btn">{{ icon('plus', 16) }} Добавить</button>
+                </div>
+            </div>
+            <div class="panel">
+                <div class="panel-head"><div><h2>Реакция на поглаживание</h2><p>Live2D: зажмите мышь на голове персонажа</p></div>
+                    <label class="switch"><input type="checkbox" name="patting_enabled" id="patting-enabled" {% if assistant.patting_enabled %}checked{% endif %}><span class="track"></span></label>
+                </div>
+                {{ slider('patting_tilt_angle', 'patting-tilt', 'Наклон головы', 0, 30, 1, assistant.patting_tilt_angle) }}
+                <div class="grid-2">
+                    {{ slider('patting_eye_close', 'patting-eye', 'Прикрытие глаз', 0, 1, 0.01, assistant.patting_eye_close) }}
+                    {{ slider('patting_follow_strength', 'patting-follow', 'Следование за рукой', 0, 5, 0.1, assistant.patting_follow_strength) }}
+                </div>
+            </div>
+        </section>
+
+        <!-- Виджет -->
+        <section class="tab-pane" id="t-widget">
+            <input type="hidden" name="widget_layout" id="widget-layout">
+            <div class="panel">
+                <div class="panel-head"><div><h2>Как виджет выглядит на сайте</h2><p>Выберите вид — предпросмотр ниже обновляется сразу</p></div></div>
+                <div class="mode-grid" id="mode-grid">
+                    {% for m, title, desc in [('popup', 'Окно', 'Классика: персонаж на фоне, полупрозрачный чат поверх. Можно двигать и растягивать.'), ('card', 'Карточка', 'Персонаж сверху, переписка снизу — аккуратное окно поддержки.'), ('novel', 'Новелла', 'Персонаж стоит поверх сайта, внизу — диалоговое окно как в визуальной новелле.')] %}
+                    <label class="mode-opt">
+                        <input type="radio" name="widget_mode" value="{{ m }}" {% if (assistant.widget_mode or 'popup') == m %}checked{% endif %}>
+                        <span class="mode-pic mode-{{ m }}"><i></i><b></b><u></u></span>
+                        <span class="mode-text"><b>{{ title }}</b><span>{{ desc }}</span></span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="panel preview-panel">
+                <div class="panel-head">
+                    <div><h2>Предпросмотр</h2><p>Так увидит виджет посетитель вашего сайта</p></div>
+                    <div style="display:flex;gap:8px;align-items:center">
+                        <div class="segmented" id="device-switch"><button type="button" class="active" data-device="desktop">Компьютер</button><button type="button" data-device="mobile">Телефон</button></div>
+                        <button type="button" class="btn btn-ghost btn-sm" id="preview-reload" title="Перезагрузить предпросмотр">{{ icon('refresh', 14) }}</button>
+                    </div>
+                </div>
+                <div class="preview-box" id="preview-box">
+                    <iframe id="preview-frame" title="Предпросмотр виджета" src="{{ url_for('widget_preview', assistant_id=assistant.id) }}"></iframe>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-head"><div><h2>Расположение и размер</h2><p id="layout-title">Настройки для выбранного вида</p></div>
+                    <button type="button" class="btn btn-ghost btn-sm" id="layout-reset">Сбросить</button></div>
+                <div id="layout-controls"></div>
+                <div class="label" style="margin:18px 0 10px">Кнопка вызова</div>
+                <div id="trigger-controls"></div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-head"><div><h2>Текст и цвета</h2></div></div>
+                <div class="field">
+                    <label for="greeting-phrase">Приветствие</label>
+                    <input type="text" name="greeting_phrase" id="greeting-phrase" value="{{ assistant.greeting_phrase or 'Привет! Чем могу помочь?' }}">
+                </div>
+                <div class="grid-2">
+                    <div>
+                        <div class="color-row"><label for="widget-primary-color">Основной цвет</label><input type="color" name="widget_primary_color" id="widget-primary-color" value="{{ assistant.widget_primary_color or '#6E56F8' }}"></div>
+                        <div class="color-row"><label for="widget-user-bubble-color">Сообщения посетителя</label><input type="color" name="widget_user_bubble_color" id="widget-user-bubble-color" value="{{ assistant.widget_user_bubble_color or '#6E56F8' }}"></div>
+                        <div class="color-row"><label for="widget-text-color">Текст</label><input type="color" name="widget_text_color" id="widget-text-color" value="{{ assistant.widget_text_color or '#e0e0f0' }}"></div>
+                    </div>
+                    <div class="field">
+                        <label for="widget-bg-color">Фон окна (любой CSS-цвет, можно полупрозрачный)</label>
+                        <input type="text" name="widget_bg_color" id="widget-bg-color" value="{{ assistant.widget_bg_color or 'rgba(15,15,30,0.92)' }}">
+                    </div>
+                </div>
+            </div>
+            <div class="panel">
+                <div class="panel-head"><div><h2>Код для вставки</h2><p>Перед <code>&lt;/body&gt;</code> на любой странице</p></div></div>
+                <div class="codebox"><button type="button" class="copy" data-copy>{{ icon('copy', 14) }} Копировать</button><pre data-hl="html">&lt;script src="{{ server_url }}/static/widget.js"
+        data-server="{{ server_url }}"
+        data-assistant-id="{{ assistant.id }}"&gt;&lt;/script&gt;</pre></div>
+            </div>
+        </section>
+
+        <div class="save-bar">
+            <span class="state" id="save-state">{{ icon('check', 16) }} Все изменения сохранены</span>
+            <div style="display:flex;gap:8px">
+                <a class="btn btn-ghost btn-sm" href="{{ url_for('dash_assistants') }}">Закрыть</a>
+                <button type="submit" class="btn btn-candy btn-sm" id="save-btn">Сохранить</button>
+            </div>
+        </div>
+    </div>
+</div>
+</form>
+{% endblock %}
+
+{% block modals %}
+<div class="modal-backdrop" id="avatar-modal">
+    <div class="modal">
+        <button class="btn btn-icon modal-close" data-close aria-label="Закрыть">{{ icon('x') }}</button>
+        <h2>Аватар ассистента</h2>
+        <p class="muted">Показывается в списке, в шапке виджета и на кнопке чата.</p>
+        <div style="margin-top:16px;max-height:360px;overflow:hidden;border-radius:16px;background:var(--surface-2)"><img id="avatar-cropper-image" alt=""></div>
+        <input type="file" id="avatar-upload-input" accept="image/png, image/jpeg, image/webp" hidden>
+        <div class="modal-actions" style="justify-content:space-between">
+            <button type="button" id="set-default-avatar-btn" class="btn btn-ghost">По умолчанию</button>
+            <div style="display:flex;gap:8px">
+                <button type="button" id="avatar-choose-file-btn" class="btn btn-soft">{{ icon('upload', 16) }} Выбрать файл</button>
+                <button type="button" id="save-avatar-btn" class="btn btn-primary">Сохранить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal-backdrop" id="delete-modal">
+    <div class="modal">
+        <h2>Удалить «{{ assistant.name }}»?</h2>
+        <p class="muted" style="margin-top:8px">Ассистент исчезнет со всех сайтов, где установлен его виджет, а история диалогов будет удалена.</p>
+        <form method="POST" action="{{ url_for('delete_assistant', assistant_id=assistant.id) }}">
+            <input type="hidden" name="next" value="{{ url_for('dash_assistants') }}">
+            <div class="modal-actions">
+                <button type="button" class="btn btn-ghost" data-close>Оставить</button>
+                <button type="submit" class="btn btn-danger">{{ icon('trash', 16) }} Удалить навсегда</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal-backdrop" id="embed-modal">
+    <div class="modal">
+        <button class="btn btn-icon modal-close" data-close aria-label="Закрыть">{{ icon('x') }}</button>
+        <h2>Код для сайта</h2>
+        <p class="muted">Вставьте перед <code>&lt;/body&gt;</code>.</p>
+        <div class="codebox" style="margin-top:14px"><button class="copy" data-copy>{{ icon('copy', 14) }} Копировать</button><pre data-hl="html">&lt;script src="{{ server_url }}/static/widget.js"
+        data-server="{{ server_url }}"
+        data-assistant-id="{{ assistant.id }}"&gt;&lt;/script&gt;</pre></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='libs/live2dcubismcore.min.js') }}"></script>
+<script src="{{ url_for('static', filename='libs/pixi.min.js') }}"></script>
+<script src="{{ url_for('static', filename='libs/cubism4.min.js') }}"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+<script src="{{ url_for('static', filename='gif_avatar.js') }}"></script>
+<script src="{{ url_for('static', filename='editor.js') }}"></script>
+{% endblock %}

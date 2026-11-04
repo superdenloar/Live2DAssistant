@@ -16,21 +16,81 @@
 {% block sidebar_content %}
     <!-- СТРАНИЦА 1: "Ваш профиль" -->
     <div id="profile-view" class="view active">
-    <h4>Ваш профиль</h4>
-    <div class="form-group">
-        <!-- 1. ИЗМЕНИТЕ ТЕКСТ ВНУТРИ LABEL -->
-        <label for="user-name">Как вас называть?</label>
-        <input type="text" id="user-name" value="{{ user.name }}">
+        <h4>Ваш профиль</h4>
+        <div class="form-group">
+            <label for="user-name">Как вас называть?</label>
+            <input type="text" id="user-name" value="{{ user.name }}">
+        </div>
+        <div class="form-group">
+            <label for="user-desc">Ваше описание для ассистентов</label>
+            <textarea id="user-desc" rows="4">{{ user.description }}</textarea>
+        </div>
+        <button class="save-btn" id="save-profile-btn">Сохранить</button>
     </div>
-    <div class="form-group">
-        <label for="user-desc">Ваше описание для ассистентов</label>
-        <textarea id="user-desc" rows="4">{{ user.description }}</textarea>
-    </div>
-    <!-- 2. ДОБАВЬТЕ ID КНОПКЕ -->
-    <button class="save-btn" id="save-profile-btn">Сохранить</button>
-</div>
 
-    <!-- СТРАНИЦА 2: "Ассистенты" -->
+    <!-- СТРАНИЦА 2: "Нейросеть (API)" -->
+    <div id="api-view" class="view">
+        <div class="view-header">
+            <h4>Настройки API (Elysium AI)</h4>
+        </div>
+        
+        <div class="form-group">
+            <label for="api-provider">Провайдер API</label>
+            <select id="api-provider">
+                <option value="elysium" {% if not api_settings or api_settings.ai_provider == 'elysium' %}selected{% endif %}>Elysium AI (Рекомендуется)</option>
+                <option value="lm_studio" {% if api_settings and api_settings.ai_provider == 'lm_studio' %}selected{% endif %}>LM Studio (Локально)</option>
+                <option value="custom" {% if api_settings and api_settings.ai_provider == 'custom' %}selected{% endif %}>Пользовательский (OpenAI-совместимый)</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="api-url">Base URL</label>
+            <input type="text" id="api-url" value="{{ api_settings.api_url if api_settings else 'https://elysiumai.garden/v1' }}" placeholder="https://elysiumai.garden/v1">
+            <small class="field-hint">Для Elysium AI: <code>https://elysiumai.garden/v1</code></small>
+        </div>
+
+        <div class="form-group">
+            <label for="api-key">API Ключ</label>
+            <div class="password-input-group">
+                <input type="password" id="api-key" value="{{ api_settings.api_key if api_settings else '' }}" placeholder="sk-...">
+                <button type="button" id="toggle-key-visibility" class="icon-btn" title="Показать/скрыть ключ">👁️</button>
+            </div>
+            <small class="field-hint">Ключ от вашего аккаунта <a href="https://elysiumai.garden" target="_blank" style="color: #007bff;">elysiumai.garden</a></small>
+        </div>
+
+        <div class="form-group">
+            <label for="api-model">Модель LLM</label>
+            <select id="api-model-select" style="margin-bottom: 8px;">
+                <option value="deepseek-v4-flash" {% if not api_settings or api_settings.model_name == 'deepseek-v4-flash' %}selected{% endif %}>deepseek-v4-flash (Antigravity 4 — Рекомендуется)</option>
+                <option value="deepseek/deepseek-v4.1-flash" {% if api_settings and api_settings.model_name == 'deepseek/deepseek-v4.1-flash' %}selected{% endif %}>deepseek/deepseek-v4.1-flash</option>
+                <option value="deepseek/deepseek-chat" {% if api_settings and api_settings.model_name == 'deepseek/deepseek-chat' %}selected{% endif %}>deepseek/deepseek-chat</option>
+                <option value="deepseek/deepseek-r1" {% if api_settings and api_settings.model_name == 'deepseek/deepseek-r1' %}selected{% endif %}>deepseek/deepseek-r1</option>
+                <option value="custom">-- Другая модель (ввести вручную) --</option>
+            </select>
+            <input type="text" id="api-model" value="{{ api_settings.model_name if api_settings else 'deepseek-v4-flash' }}" placeholder="deepseek-v4-flash">
+        </div>
+
+        <div class="form-group">
+            <label for="api-temperature">Температура (креативность): <span id="temp-val">{{ api_settings.temperature if api_settings else 0.7 }}</span></label>
+            <input type="range" id="api-temperature" min="0" max="1.5" step="0.05" value="{{ api_settings.temperature if api_settings else 0.7 }}">
+        </div>
+
+        <div class="form-group">
+            <label class="checkbox-label" style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                <input type="checkbox" id="api-enable" class="styled-checkbox" {% if not api_settings or api_settings.enable_ai %}checked{% endif %}>
+                <span>Включить нейросеть</span>
+            </label>
+        </div>
+
+        <div class="api-actions" style="display: flex; gap: 10px; margin-top: 15px;">
+            <button type="button" class="btn-secondary" id="test-api-btn" style="flex: 1;">⚡ Проверить</button>
+            <button type="button" class="save-btn" id="save-api-btn" style="flex: 1; float: none;">💾 Сохранить</button>
+        </div>
+
+        <div id="api-status-box" style="margin-top: 15px; display: none;" class="status-box"></div>
+    </div>
+
+    <!-- СТРАНИЦА 3: "Ассистенты" -->
     <div id="assistants-view" class="view">
         <div class="view-header">
             <h4>Ассистенты</h4>
@@ -54,7 +114,7 @@
         </div>
     </div>
 
-    <!-- СТРАНИЦА 3: "Чаты" -->
+    <!-- СТРАНИЦА 4: "Чаты" -->
     <div id="chats-view" class="view">
         <div class="view-header">
             <h4>Чаты</h4>
@@ -122,16 +182,16 @@
     </div>
 
     <!-- Модальное окно для подтверждения очистки чата -->
-<div id="clear-confirm-modal" class="modal-overlay" style="display: none;">
-    <div class="modal-content">
-        <h4>Подтверждение</h4>
-        <p>Вы уверены, что хотите удалить все сообщения в этом чате? Это действие необратимо.</p>
-        <div class="modal-actions">
-            <button id="cancel-clear-btn" class="btn-secondary">Нет</button>
-            <button id="confirm-clear-btn" class="delete-btn">Да, очистить</button>
+    <div id="clear-confirm-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <h4>Подтверждение</h4>
+            <p>Вы уверены, что хотите удалить все сообщения в этом чате? Это действие необратимо.</p>
+            <div class="modal-actions">
+                <button id="cancel-clear-btn" class="btn-secondary">Нет</button>
+                <button id="confirm-clear-btn" class="delete-btn">Да, очистить</button>
+            </div>
         </div>
     </div>
-</div>
 
     <!-- Модальное окно для создания нового чата -->
     <div id="create-chat-modal" class="modal-overlay" style="display: none;">
@@ -191,4 +251,5 @@
     <script src="{{ url_for('static', filename='libs/live2dcubismcore.min.js') }}"></script>
     <script src="{{ url_for('static', filename='libs/pixi.min.js') }}"></script>
     <script src="{{ url_for('static', filename='libs/cubism4.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='gif_avatar.js') }}"></script>
 {% endblock %}

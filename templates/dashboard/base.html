@@ -1,0 +1,78 @@
+{% from 'dashboard/_icons.html' import icon %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Кабинет{% endblock %} — Live2D Assistant</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%236E56F8'/><stop offset='1' stop-color='%23FF6FAE'/></linearGradient></defs><rect width='32' height='32' rx='10' fill='url(%23g)'/><path d='M9 21c3 3 11 3 14 0' stroke='white' stroke-width='3' fill='none' stroke-linecap='round'/><circle cx='12' cy='13' r='2.2' fill='white'/><circle cx='20' cy='13' r='2.2' fill='white'/></svg>">
+    <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+    {% block head %}{% endblock %}
+</head>
+<body data-page="{{ page }}">
+{% set nav = [
+    ('assistants', 'Ассистенты', 'dash_assistants', 'assistants'),
+    ('dialogs', 'Диалоги', 'dash_dialogs', 'dialogs'),
+    ('analytics', 'Аналитика', 'dash_analytics', 'analytics'),
+    ('docs', 'Документация', 'dash_docs', 'docs'),
+] %}
+{% set nav2 = [
+    ('settings', 'Настройки', 'dash_settings', 'settings'),
+    ('billing', 'Подписка', 'dash_billing', 'billing'),
+] %}
+<div class="mobile-bar">
+    <a class="brand" href="{{ url_for('landing') }}" style="padding:0">
+        <span class="brand-mark">{{ icon('sparkles', 18) }}</span>
+        <span class="brand-name">Live2D Assistant</span>
+    </a>
+    <button class="btn-icon btn" id="sidebar-open" aria-label="Открыть меню">{{ icon('menu') }}</button>
+</div>
+<div class="shell">
+    <aside class="sidebar" id="sidebar">
+        <a class="brand" href="{{ url_for('landing') }}">
+            <span class="brand-mark">{{ icon('sparkles', 18) }}</span>
+            <span class="brand-name">Live2D Assistant<small>Кабинет компании</small></span>
+        </a>
+        <nav class="nav" aria-label="Разделы">
+            {% for key, title, endpoint, ic in nav %}
+            <a href="{{ url_for(endpoint) }}" class="{% if page == key %}active{% endif %}">
+                {{ icon(ic) }}<span>{{ title }}</span>
+                {% if key == 'dialogs' %}<span class="count" id="nav-waiting" {% if not waiting_count %}hidden{% endif %} title="Ждут оператора">{{ waiting_count or 0 }}</span>{% endif %}
+            </a>
+            {% endfor %}
+            <div class="nav-group-title">Компания</div>
+            {% for key, title, endpoint, ic in nav2 %}
+            <a href="{{ url_for(endpoint) }}" class="{% if page == key %}active{% endif %}">{{ icon(ic) }}<span>{{ title }}</span></a>
+            {% endfor %}
+            <a href="{{ url_for('index') }}">{{ icon('play') }}<span>Студия</span></a>
+            <a href="{{ url_for('test_site') }}" target="_blank">{{ icon('globe') }}<span>Тестовый сайт</span></a>
+        </nav>
+        <div class="sidebar-foot">
+            <div class="upgrade-card">
+                <b>Тариф «Бизнес»</b>
+                <span>Безлимитные диалоги до 31 декабря</span>
+                <div class="meter"><i style="width: 68%"></i></div>
+            </div>
+            <a class="account-chip {% if page == 'account' %}active{% endif %}" href="{{ url_for('dash_account') }}">
+                {% if admin_user and admin_user.avatar_url %}
+                    <img class="avatar" src="{{ url_for('static', filename=admin_user.avatar_url) }}" alt="">
+                {% else %}
+                    <span class="avatar">{{ (admin_user.name if admin_user and admin_user.name else 'А')[:1] }}</span>
+                {% endif %}
+                <span class="who"><b>Администратор</b><span>{{ admin_user.name if admin_user else '' }}</span></span>
+            </a>
+            <a class="btn btn-ghost btn-sm" href="{{ url_for('logout') }}">{{ icon('logout', 16) }} Выйти</a>
+        </div>
+    </aside>
+
+    <main class="main">
+        {% block content %}{% endblock %}
+    </main>
+</div>
+
+<div class="toasts" id="toasts" aria-live="polite"></div>
+{% block modals %}{% endblock %}
+<script src="{{ url_for('static', filename='dashboard.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

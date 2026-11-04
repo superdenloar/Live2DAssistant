@@ -1,0 +1,55 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}Подписка{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Подписка</h1>
+        <p>Текущий тариф, расход за месяц и счета. Оплата появится после запуска — сейчас все возможности открыты.</p>
+    </div>
+    <div class="page-actions"><button class="btn btn-ghost" data-soon="Выставление счетов в разработке">{{ icon('download', 18) }} Счёт для бухгалтерии</button></div>
+</div>
+
+<section class="panel">
+    <div class="panel-head"><div><h2>Расход в этом месяце</h2><p>Тариф «Бизнес» · продлится 31 декабря</p></div><span class="badge mint"><span class="dot"></span> Оплачено</span></div>
+    {% set lim_msg = 20000 %}
+    <div class="usage">
+        <div><div class="u-top"><span>Ответы ассистентов</span><b>{{ usage.messages }} / {{ '{:,}'.format(lim_msg).replace(',', ' ') }}</b></div>
+            <div class="meter"><i style="width: {{ [100, (usage.messages / lim_msg * 100)|round(1)]|min }}%; min-width: 4px"></i></div></div>
+        <div><div class="u-top"><span>Ассистенты</span><b>{{ usage.assistants }} / 10</b></div>
+            <div class="meter"><i style="width: {{ [100, usage.assistants * 10]|min }}%"></i></div></div>
+        <div><div class="u-top"><span>Диалоги, всего</span><b>{{ usage.dialogs }} / ∞</b></div>
+            <div class="meter"><i style="width: 12%"></i></div></div>
+    </div>
+</section>
+
+<h2 style="margin:28px 0 14px">Тарифы</h2>
+<div class="plans">
+    {% for p in [
+        {'name': 'Старт', 'price': '0', 'per': '₽ / мес', 'desc': 'Попробовать на своём сайте', 'items': ['1 ассистент', '500 ответов в месяц', 'GIF и чат-бот', 'Логотип «Live2D Assistant» в виджете']},
+        {'name': 'Про', 'price': '2 900', 'per': '₽ / мес', 'desc': 'Для небольшого магазина', 'items': ['3 ассистента', '5 000 ответов', 'Live2D и голос', 'Живой оператор', 'Без логотипа']},
+        {'name': 'Бизнес', 'price': '9 900', 'per': '₽ / мес', 'desc': 'Когда поддержка — это команда', 'items': ['10 ассистентов', '20 000 ответов', 'Аналитика и выгрузки', 'Контекст страницы и JS API', 'Приоритетная поддержка'], 'current': True},
+        {'name': 'Корпорация', 'price': 'от 49 000', 'per': '₽ / мес', 'desc': 'Своя модель и сервер', 'items': ['Без ограничений', 'Установка на ваш сервер', 'Свой персонаж под ключ', 'SLA 99,9%', 'Персональный менеджер']},
+    ] %}
+    <div class="plan {% if p.current %}current{% endif %}">
+        {% if p.current %}<span class="badge">Ваш тариф</span>{% endif %}
+        <div><div class="p-name">{{ p.name }}</div><div class="small muted">{{ p.desc }}</div></div>
+        <div class="p-price">{{ p.price }} <small>{{ p.per }}</small></div>
+        <ul>{% for it in p['items'] %}<li>{{ icon('check', 16) }}<span>{{ it }}</span></li>{% endfor %}</ul>
+        {% if p.current %}<button class="btn btn-soft" disabled>Подключён</button>
+        {% else %}<button class="btn btn-ghost" data-soon="Смена тарифа станет доступна после запуска оплаты">Перейти на «{{ p.name }}»</button>{% endif %}
+    </div>
+    {% endfor %}
+</div>
+
+<section class="panel" style="margin-top:22px">
+    <div class="panel-head"><div><h2>История платежей</h2></div></div>
+    <table class="table">
+        <tr><th>Дата</th><th>Описание</th><th>Сумма</th><th>Статус</th><th></th></tr>
+        {% for d, m in [('1 ноября', 'Тариф «Бизнес», ноябрь'), ('1 октября', 'Тариф «Бизнес», октябрь'), ('1 сентября', 'Тариф «Про», сентябрь')] %}
+        <tr><td>{{ d }}</td><td>{{ m }}</td><td>{{ '2 900' if 'Про' in m else '9 900' }} ₽</td><td><span class="badge mint">Оплачен</span></td>
+            <td style="text-align:right"><button class="btn btn-ghost btn-sm" data-soon="Скачивание документов в разработке">PDF</button></td></tr>
+        {% endfor %}
+    </table>
+    <p class="small faint" style="margin-top:12px">Демонстрационные записи: в MVP оплата не подключена.</p>
+</section>
+{% endblock %}

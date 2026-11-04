@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hanami — тестовый сайт для ассистента</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Onest:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root { --bg: #FFF8F9; --text: #3A2A33; --muted: #8A6F7C; --card: rgba(255,255,255,.78); --line: rgba(190,120,150,.18); --accent: #C2306F; }
+  body[data-theme="light"] { --bg: #FFFFFF; --card: #FFFFFF; }
+  body[data-theme="dark"] { --bg: #16121E; --text: #F3E9EF; --muted: #B7A3B0; --card: rgba(255,255,255,.06); --line: rgba(255,255,255,.1); --accent: #FF8DC0; }
+  body[data-theme="custom"] { --bg: var(--custom-bg, #EAF4FF); }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; font-family: 'Onest', system-ui, sans-serif; color: var(--text); background: var(--bg); transition: background .3s, color .3s; }
+  body[data-theme="sakura"] { background: #FFF6F8 url('{{ url_for('static', filename='img/testsite/delicate-pink-flowers.jpg') }}') center top / cover fixed no-repeat; }
+  h1, h2, h3 { font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 600; margin: 0; letter-spacing: -.01em; }
+  a { color: inherit; }
+  .wrap { width: min(1160px, 100% - 40px); margin: 0 auto; }
+
+  nav.top { position: sticky; top: 0; z-index: 10; backdrop-filter: blur(10px); background: color-mix(in srgb, var(--bg) 70%, transparent); border-bottom: 1px solid var(--line); }
+  nav.top .wrap { display: flex; align-items: center; gap: 28px; height: 68px; }
+  nav.top b { font-family: 'Cormorant Garamond', serif; font-size: 26px; color: var(--accent); }
+  nav.top a { text-decoration: none; color: var(--muted); font-size: 15px; }
+  nav.top .cart { margin-left: auto; padding: 9px 16px; border-radius: 99px; background: var(--accent); color: #fff; font-weight: 600; font-size: 14px; }
+
+  .hero { min-height: 78vh; display: grid; grid-template-columns: 1fr 1fr; align-items: center; }
+  .hero-text { grid-column: 2; padding: 40px 0; }
+  .hero h1 { font-size: clamp(44px, 6vw, 84px); line-height: .98; }
+  .hero p { font-size: 19px; line-height: 1.6; color: var(--muted); max-width: 30em; margin: 22px 0 30px; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; height: 50px; padding: 0 26px; border-radius: 99px; border: 0; font: 600 15px 'Onest', sans-serif; cursor: pointer; text-decoration: none; }
+  .btn.main { background: var(--accent); color: #fff; box-shadow: 0 14px 30px -14px rgba(194,48,111,.8); }
+  .btn.ghost { background: var(--card); color: var(--text); border: 1px solid var(--line); margin-left: 8px; }
+
+  section.block { padding: 70px 0; }
+  .block h2 { font-size: 44px; margin-bottom: 26px; }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+  .item { background: var(--card); border: 1px solid var(--line); border-radius: 26px; overflow: hidden; backdrop-filter: blur(6px); }
+  .item .ph { height: 220px; background: url('{{ url_for('static', filename='img/testsite/delicate-pink-flowers.jpg') }}') no-repeat; background-size: 360% auto; }
+  .item:nth-child(1) .ph { background-position: 8% 30%; } .item:nth-child(2) .ph { background-position: 14% 80%; } .item:nth-child(3) .ph { background-position: 0% 55%; }
+  .item .in { padding: 18px 20px 22px; }
+  .item h3 { font-size: 26px; }
+  .item p { color: var(--muted); margin: 6px 0 14px; }
+  .item .row { display: flex; justify-content: space-between; align-items: center; }
+  .item .price { font-weight: 600; font-size: 18px; }
+  .item button { border: 1px solid var(--accent); background: transparent; color: var(--accent); border-radius: 99px; padding: 8px 16px; font: 600 14px 'Onest', system-ui, sans-serif; cursor: pointer; }
+  .item button:hover { background: var(--accent); color: #fff; }
+  .about { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center; background: var(--card); border: 1px solid var(--line); border-radius: 32px; padding: 44px; backdrop-filter: blur(8px); }
+  .about p { color: var(--muted); line-height: 1.7; font-size: 17px; }
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .stats div { text-align: center; } .stats b { display: block; font-family: 'Cormorant Garamond', serif; font-size: 44px; color: var(--accent); } .stats span { color: var(--muted); font-size: 14px; }
+  footer { padding: 40px 0 120px; color: var(--muted); font-size: 14px; text-align: center; }
+
+  /* Панель тестового стенда */
+  .bench { position: fixed; left: 18px; top: 84px; z-index: 2147483600; width: 300px; font-family: 'Onest', system-ui, sans-serif; color: #1E1838;
+           background: rgba(255,255,255,.94); backdrop-filter: blur(14px); border: 1px solid #E9E3F7; border-radius: 20px; box-shadow: 0 24px 60px -24px rgba(30,24,56,.55); }
+  .bench-head { display: flex; align-items: center; gap: 10px; padding: 12px 14px; cursor: pointer; user-select: none; }
+  .bench-head i { width: 28px; height: 28px; border-radius: 9px; background: linear-gradient(140deg,#6E56F8,#FF6FAE); flex: none; }
+  .bench-head b { font-size: 14px; flex: 1; } .bench-head span { color: #8C86A6; font-size: 18px; transition: transform .2s; }
+  .bench.collapsed .bench-head span { transform: rotate(180deg); }
+  .bench.collapsed .bench-body { display: none; }
+  .bench-body { padding: 0 14px 14px; display: flex; flex-direction: column; gap: 12px; }
+  .bench label.t { display: block; font-size: 12px; font-weight: 600; color: #8C86A6; margin-bottom: 6px; }
+  .bench select { width: 100%; padding: 8px 10px; border-radius: 10px; border: 1px solid #DCD3F2; font: 14px 'Onest', system-ui, sans-serif; background: #fff; }
+  .seg { display: flex; background: #EEEAFF; border-radius: 11px; padding: 3px; gap: 2px; }
+  .seg button { flex: 1; border: 0; background: transparent; padding: 7px 4px; border-radius: 8px; font: 600 12.5px 'Onest', system-ui, sans-serif; color: #565072; cursor: pointer; }
+  .seg button.on { background: #fff; color: #1E1838; box-shadow: 0 1px 4px rgba(30,24,56,.15); }
+  .themes { display: flex; gap: 8px; align-items: center; }
+  .themes button { width: 34px; height: 34px; border-radius: 10px; border: 2px solid transparent; cursor: pointer; padding: 0; background-size: cover; background-position: 10% 40%; }
+  .themes button.on { border-color: #6E56F8; box-shadow: 0 0 0 2px #fff inset; }
+  .themes input[type=color] { width: 34px; height: 34px; border: 1px solid #DCD3F2; border-radius: 10px; padding: 2px; background: #fff; cursor: pointer; }
+  .bench .acts { display: flex; gap: 6px; flex-wrap: wrap; }
+  .bench .acts button, .bench .acts a { flex: 1; text-align: center; border: 1px solid #DCD3F2; background: #fff; border-radius: 10px; padding: 8px 6px; font: 600 12.5px 'Onest', system-ui, sans-serif; color: #1E1838; cursor: pointer; text-decoration: none; }
+  .bench .acts .pri { background: #6E56F8; border-color: #6E56F8; color: #fff; }
+  @media (max-width: 860px) { .hero { grid-template-columns: 1fr; } .hero-text { grid-column: 1; background: var(--card); border-radius: 24px; padding: 26px; } .grid, .about { grid-template-columns: 1fr; } .bench { width: calc(100% - 36px); } }
+</style>
+</head>
+<body data-theme="sakura">
+<nav class="top"><div class="wrap"><b>Hanami</b><a href="#shop">Букеты</a><a href="#about">О мастерской</a><a href="#">Доставка</a><span class="cart" id="cart">Корзина · 0 ₽</span></div></nav>
+
+<header class="wrap hero">
+  <div class="hero-text">
+    <h1>Цветы, которые говорят за вас</h1>
+    <p>Авторские букеты из сезонных цветов. Соберём за час и привезём в тот же день. Не знаете, что выбрать — спросите нашего ассистента.</p>
+    <button class="btn main" id="ask-btn">Подобрать букет</button><a class="btn ghost" href="#shop">Смотреть каталог</a>
+  </div>
+</header>
+
+<section class="block wrap" id="shop">
+  <h2>Букеты недели</h2>
+  <div class="grid">
+    <div class="item"><div class="ph"></div><div class="in"><h3>«Утренний сад»</h3><p>Розовая космея, гипсофила, эвкалипт</p><div class="row"><span class="price">3 490 ₽</span><button data-p="3490" data-n="«Утренний сад»">В корзину</button></div></div></div>
+    <div class="item"><div class="ph"></div><div class="in"><h3>«Сакура»</h3><p>Ветки цветущей вишни в крафте</p><div class="row"><span class="price">4 200 ₽</span><button data-p="4200" data-n="«Сакура»">В корзину</button></div></div></div>
+    <div class="item"><div class="ph"></div><div class="in"><h3>«Нежность»</h3><p>Мини-букет для подарка без повода</p><div class="row"><span class="price">1 990 ₽</span><button data-p="1990" data-n="«Нежность»">В корзину</button></div></div></div>
+  </div>
+</section>
+
+<section class="block wrap" id="about">
+  <div class="about">
+    <div><h2>Маленькая мастерская</h2><p>Мы работаем с местными фермами и собираем каждый букет вручную. Открытка с вашим текстом — бесплатно, а если цветы не понравятся, заменим в течение суток.</p></div>
+    <div class="stats"><div><b>12</b><span>лет работы</span></div><div><b>60</b><span>минут на сборку</span></div><div><b>4.9</b><span>рейтинг</span></div></div>
+  </div>
+</section>
+<footer>Hanami · это тестовый сайт Live2D Assistant — так ассистент будет выглядеть у ваших клиентов</footer>
+
+<!-- Панель тестового стенда -->
+<div class="bench" id="bench">
+  <div class="bench-head" id="bench-head"><i></i><b>Тестовый стенд</b><span>▾</span></div>
+  <div class="bench-body">
+    <div><label class="t">Ассистент</label>
+      <select id="sel-assistant">{% for a in assistants %}<option value="{{ a.id }}" {% if assistant and a.id == assistant.id %}selected{% endif %}>{{ a.name }} · {{ {'live2d':'Live2D','gif':'GIF','text':'чат-бот','3d':'3D'}.get(a.avatar_type or 'live2d', a.avatar_type) }}</option>{% endfor %}</select></div>
+    <div><label class="t">Вид виджета</label>
+      <div class="seg" id="seg-mode"><button data-m="popup">Окно</button><button data-m="card">Карточка</button><button data-m="novel">Новелла</button></div></div>
+    <div><label class="t">Фон сайта</label>
+      <div class="themes" id="themes">
+        <button data-t="sakura" title="Сакура" style="background-image:url('{{ url_for('static', filename='img/testsite/delicate-pink-flowers.jpg') }}')"></button>
+        <button data-t="light" title="Светлый" style="background:#fff;border-color:#E9E3F7"></button>
+        <button data-t="dark" title="Тёмный" style="background:#16121E"></button>
+        <input type="color" id="custom-bg" value="#eaf4ff" title="Свой цвет фона">
+      </div></div>
+    <div class="acts">
+      <button class="pri" id="open-btn">Открыть ассистента</button>
+      <button id="say-btn">Сказать фразу</button>
+      {% if is_admin and assistant %}<a href="{{ url_for('edit_assistant', assistant_id=assistant.id) }}" target="_blank">Настроить</a>{% endif %}
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const q = new URLSearchParams(location.search);
+  const save = (k, v) => { q.set(k, v); history.replaceState(null, '', location.pathname + '?' + q.toString()); try { localStorage.setItem('ts_' + k, v); } catch (_) {} };
+  const load = (k, d) => q.get(k) || (() => { try { return localStorage.getItem('ts_' + k); } catch (_) { return null; } })() || d;
+
+  // Фон сайта
+  function setTheme(t, color) {
+    document.body.dataset.theme = t;
+    if (t === 'custom') document.body.style.setProperty('--custom-bg', color || document.getElementById('custom-bg').value);
+    document.querySelectorAll('#themes button').forEach(b => b.classList.toggle('on', b.dataset.t === t));
+    save('bg', t); if (t === 'custom') save('color', color || document.getElementById('custom-bg').value);
+  }
+  document.querySelectorAll('#themes button').forEach(b => b.addEventListener('click', () => setTheme(b.dataset.t)));
+  const cbg = document.getElementById('custom-bg');
+  cbg.value = load('color', '#eaf4ff');
+  cbg.addEventListener('input', () => setTheme('custom', cbg.value));
+  setTheme(load('bg', 'sakura'), cbg.value);
+
+  // Вид виджета
+  function markMode(m) { document.querySelectorAll('#seg-mode button').forEach(b => b.classList.toggle('on', b.dataset.m === m)); }
+  document.querySelectorAll('#seg-mode button').forEach(b => b.addEventListener('click', async () => {
+    markMode(b.dataset.m); save('m', b.dataset.m);
+    if (window.LW) { await LW.setLayout(null, b.dataset.m); LW.open(); }
+  }));
+
+  document.getElementById('sel-assistant').addEventListener('change', e => { save('a', e.target.value); location.search = q.toString(); });
+  document.getElementById('bench-head').addEventListener('click', () => document.getElementById('bench').classList.toggle('collapsed'));
+  document.getElementById('open-btn').addEventListener('click', () => window.LW && LW.open());
+  document.getElementById('say-btn').addEventListener('click', () => window.LW && LW.say('【Киваю головой】Добро пожаловать в Hanami! Подсказать букет?'));
+  document.getElementById('ask-btn').addEventListener('click', () => window.LW && LW.ask('Посоветуй букет в подарок маме'));
+
+  // Корзина и контекст страницы для ассистента
+  const cart = [];
+  document.querySelectorAll('.item button').forEach(b => b.addEventListener('click', () => {
+    cart.push({ n: b.dataset.n, p: +b.dataset.p });
+    document.getElementById('cart').textContent = 'Корзина · ' + cart.reduce((a, x) => a + x.p, 0).toLocaleString('ru-RU') + ' ₽';
+  }));
+  window.__ASSISTANT_CONTEXT__ = () => ({
+    'Сайт': 'Цветочная мастерская Hanami',
+    'Каталог': '«Утренний сад» 3490 ₽ (космея, гипсофила, эвкалипт); «Сакура» 4200 ₽ (ветки вишни); «Нежность» 1990 ₽ (мини-букет)',
+    'Доставка': 'в тот же день, сборка за 60 минут, открытка бесплатно',
+    'В корзине': cart.length ? cart.map(x => x.n).join(', ') : 'пусто',
+  });
+
+  window.__TS_MODE__ = load('m', '');
+  if (window.__TS_MODE__) markMode(window.__TS_MODE__);
+})();
+</script>
+{% if assistant %}
+<script>
+  // Виджет подключается так же, как на сайте клиента; режим берём из панели стенда
+  (function () {
+    const s = document.createElement('script');
+    s.src = '{{ server_url }}/static/widget.js';
+    s.dataset.server = '{{ server_url }}';
+    s.dataset.assistantId = '{{ assistant.id }}';
+    s.dataset.open = 'true';
+    if (window.__TS_MODE__) s.dataset.mode = window.__TS_MODE__;
+    document.body.appendChild(s);
+    const mark = () => { if (window.LW) { document.querySelectorAll('#seg-mode button').forEach(b => b.classList.toggle('on', b.dataset.m === LW.mode)); } else setTimeout(mark, 300); };
+    mark();
+  })();
+</script>
+{% endif %}
+</body>
+</html>

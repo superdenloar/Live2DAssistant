@@ -1,0 +1,149 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}Настройки{% endblock %}
+{% set known = ['deepseek-v4-flash','deepseek/deepseek-v4.1-flash','deepseek/deepseek-chat','deepseek/deepseek-r1'] %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Настройки</h1>
+        <p>Подключение нейросети, уведомления и доступ к виджету для всей компании.</p>
+    </div>
+</div>
+
+<div class="two-col">
+    <div class="stack">
+        <section class="panel">
+            <div class="panel-head">
+                <div><h2>Нейросеть</h2><p>Модель, которая отвечает за всех ассистентов, если в редакторе не выбрана другая</p></div>
+                <span class="badge {% if api_settings.enable_ai %}mint{% else %}grey{% endif %}" id="ai-badge">{% if api_settings.enable_ai %}Включена{% else %}Выключена{% endif %}</span>
+            </div>
+            <div class="grid-2">
+                <div class="field">
+                    <label for="api-provider">Провайдер</label>
+                    <select id="api-provider">
+                        <option value="elysium" {% if api_settings.ai_provider == 'elysium' %}selected{% endif %}>Elysium AI</option>
+                        <option value="lm_studio" {% if api_settings.ai_provider == 'lm_studio' %}selected{% endif %}>LM Studio (локально)</option>
+                        <option value="custom" {% if api_settings.ai_provider == 'custom' %}selected{% endif %}>Свой OpenAI-совместимый</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="api-url">Адрес API</label>
+                    <input type="text" id="api-url" value="{{ api_settings.api_url }}" placeholder="https://elysiumai.garden/v1">
+                </div>
+            </div>
+            <div class="field">
+                <label for="api-key">API-ключ</label>
+                <div style="display:flex;gap:8px">
+                    <input type="password" class="input" id="api-key" value="{{ api_settings.api_key or '' }}" placeholder="sk-..." autocomplete="off">
+                    <button type="button" class="btn btn-ghost" id="toggle-key" aria-label="Показать ключ">{{ icon('eye', 18) }}</button>
+                </div>
+                <span class="hint">Хранится локально в базе этого сервера.</span>
+            </div>
+            <div class="grid-2">
+                <div class="field">
+                    <label for="api-model-select">Модель</label>
+                    <select id="api-model-select">
+                        {% for m in known %}<option value="{{ m }}" {% if api_settings.model_name == m %}selected{% endif %}>{{ m }}</option>{% endfor %}
+                        <option value="custom" {% if api_settings.model_name not in known %}selected{% endif %}>Другая…</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="api-model">Название модели</label>
+                    <input type="text" id="api-model" value="{{ api_settings.model_name }}">
+                </div>
+            </div>
+            <div class="field">
+                <label for="api-temperature">Креативность: <span id="temp-val">{{ api_settings.temperature }}</span></label>
+                <input type="range" id="api-temperature" min="0" max="1.5" step="0.05" value="{{ api_settings.temperature }}">
+                <span class="hint">0 — сдержанно и точно, 1+ — живее и разнообразнее</span>
+            </div>
+            <div class="toggle-row">
+                <div><div class="t-title">Отвечать с помощью ИИ</div><div class="t-desc">Если выключить, ассистенты перестанут отвечать — удобно для проверки интерфейса</div></div>
+                <label class="switch"><input type="checkbox" id="api-enable" {% if api_settings.enable_ai %}checked{% endif %}><span class="track"></span></label>
+            </div>
+            <div id="api-status" class="callout" hidden></div>
+            <div style="display:flex;gap:10px;margin-top:16px;justify-content:flex-end">
+                <button type="button" class="btn btn-ghost" id="test-api-btn">{{ icon('zap', 16) }} Проверить подключение</button>
+                <button type="button" class="btn btn-primary" id="save-api-btn">Сохранить</button>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-head"><div><h2>Доступ к виджету</h2><p>На каких сайтах разрешено показывать ассистентов</p></div><span class="badge butter">Бета</span></div>
+            <div class="field">
+                <label for="domains">Разрешённые домены, по одному в строке</label>
+                <textarea id="domains" rows="3" data-pref="domains" placeholder="shop.example.ru&#10;localhost">localhost
+127.0.0.1</textarea>
+                <span class="hint">В MVP проверка доменов не включена — список сохраняется для будущей версии.</span>
+            </div>
+            <div class="field">
+                <label>Публичный ключ проекта</label>
+                <div style="display:flex;gap:8px"><input class="input" id="pub-key" value="pk_live_l2a_7f3c9a2e41b8" readonly><button class="btn btn-ghost" data-copy="#pub-key">{{ icon('copy', 16) }}</button></div>
+            </div>
+        </section>
+    </div>
+
+    <div class="stack">
+        <section class="panel">
+            <div class="panel-head"><div><h2>Уведомления</h2><p>Когда кабинет должен звать вас</p></div></div>
+            <div class="toggle-row"><div><div class="t-title">Клиент зовёт оператора</div><div class="t-desc">Всплывающее уведомление и счётчик в меню</div></div><label class="switch"><input type="checkbox" data-pref="n_handoff" checked><span class="track"></span></label></div>
+            <div class="toggle-row"><div><div class="t-title">Звук уведомлений</div><div class="t-desc">Короткий сигнал при новом запросе</div></div><label class="switch"><input type="checkbox" data-pref="n_sound"><span class="track"></span></label></div>
+            <div class="toggle-row"><div><div class="t-title">Еженедельный отчёт на почту</div><div class="t-desc">Диалоги, автоматизация, пиковые часы</div></div><label class="switch"><input type="checkbox" data-pref="n_weekly" checked><span class="track"></span></label></div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-head"><div><h2>Компания</h2></div></div>
+            <div class="field"><label>Язык ассистентов по умолчанию</label>
+                <select data-pref="lang"><option>Русский</option><option>English</option><option>Қазақша</option></select></div>
+            <div class="field"><label>Часовой пояс отчётов</label>
+                <select data-pref="tz"><option>Москва, UTC+3</option><option>Екатеринбург, UTC+5</option><option>Новосибирск, UTC+7</option><option>Владивосток, UTC+10</option></select></div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-head"><div><h2>Интеграции</h2><p>Куда отправлять диалоги и заявки</p></div></div>
+            {% for name, d in [('Telegram', 'Уведомления операторам в чат'), ('Битрикс24', 'Заявки и лиды в CRM'), ('amoCRM', 'Сделки из диалогов'), ('Яндекс Метрика', 'Цели по разговорам')] %}
+            <div class="toggle-row"><div><div class="t-title">{{ name }}</div><div class="t-desc">{{ d }}</div></div><button class="btn btn-ghost btn-sm" data-soon="Интеграция с {{ name }} в разработке">Подключить</button></div>
+            {% endfor %}
+        </section>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+    const $ = s => document.querySelector(s);
+    const payload = () => ({
+        provider: $('#api-provider').value, api_url: $('#api-url').value.trim(), api_key: $('#api-key').value.trim(),
+        model_name: $('#api-model').value.trim(), temperature: parseFloat($('#api-temperature').value), enable_ai: $('#api-enable').checked,
+    });
+    $('#api-temperature').addEventListener('input', e => $('#temp-val').textContent = e.target.value);
+    $('#toggle-key').addEventListener('click', () => { const k = $('#api-key'); k.type = k.type === 'password' ? 'text' : 'password'; });
+    $('#api-provider').addEventListener('change', e => {
+        if (e.target.value === 'elysium') $('#api-url').value = 'https://elysiumai.garden/v1';
+        if (e.target.value === 'lm_studio') $('#api-url').value = 'http://127.0.0.1:1234/v1';
+    });
+    $('#api-model-select').addEventListener('change', e => { if (e.target.value !== 'custom') $('#api-model').value = e.target.value; });
+    $('#save-api-btn').addEventListener('click', async () => {
+        try {
+            await Dash.api('/api/settings', { json: payload() });
+            const on = $('#api-enable').checked;
+            $('#ai-badge').textContent = on ? 'Включена' : 'Выключена';
+            $('#ai-badge').className = 'badge ' + (on ? 'mint' : 'grey');
+            Dash.toast('Настройки нейросети сохранены');
+        } catch (e) { Dash.toast(e.message, 'err'); }
+    });
+    $('#test-api-btn').addEventListener('click', async () => {
+        const box = $('#api-status'), btn = $('#test-api-btn');
+        box.hidden = false; box.style.background = 'var(--violet-soft)'; box.textContent = 'Отправляю тестовый запрос модели…';
+        btn.disabled = true;
+        try {
+            const r = await fetch('/api/settings/test', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload()) });
+            const d = await r.json();
+            box.style.background = d.success ? 'var(--mint-soft)' : 'var(--danger-soft)';
+            box.style.color = d.success ? '#0F6B53' : '#9A1F35';
+            box.textContent = d.message;
+        } catch (e) { box.textContent = 'Нет связи с сервером: ' + e.message; }
+        finally { btn.disabled = false; }
+    });
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,66 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}Аналитика{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Аналитика</h1>
+        <p>Сколько людей разговаривает с ассистентами, когда они приходят и как часто им нужен живой оператор.</p>
+    </div>
+    <div class="page-actions" style="align-items:center">
+        <label class="switch small"><input type="checkbox" id="demo-toggle"><span class="track"></span><span>Демо-данные</span></label>
+        <div class="segmented" id="period">
+            <button data-d="7">7 дней</button>
+            <button data-d="14" class="active">14 дней</button>
+            <button data-d="30">30 дней</button>
+        </div>
+    </div>
+</div>
+
+<div class="demo-note" id="demo-note" hidden>
+    {{ icon('sparkles', 18) }}<span><b>За этот период данных почти нет.</b> Включите «Демо-данные», чтобы посмотреть, как выглядит отчёт у работающего магазина.</span>
+</div>
+<div class="demo-note" id="demo-on" hidden style="background:var(--violet-soft);color:#2D1F7A">
+    {{ icon('eye', 18) }}<span>Показаны демонстрационные данные. Реальная статистика — после выключения переключателя.</span>
+</div>
+
+<div class="kpis">
+    <div class="kpi"><div class="k-label">{{ icon('dialogs', 16) }} Диалогов</div><div class="k-val" id="k-dialogs">—</div><div class="k-sub" id="k-dialogs-sub"></div></div>
+    <div class="kpi"><div class="k-label">{{ icon('bot', 16) }} Ответов ассистента</div><div class="k-val" id="k-ai">—</div><div class="k-sub" id="k-ai-sub"></div></div>
+    <div class="kpi"><div class="k-label">{{ icon('zap', 16) }} Решено без оператора</div><div class="k-val" id="k-auto">—</div><div class="k-sub">доля ответов ассистента</div></div>
+    <div class="kpi"><div class="k-label">{{ icon('headset', 16) }} Передано оператору</div><div class="k-val" id="k-handoff">—</div><div class="k-sub" id="k-handoff-sub"></div></div>
+</div>
+
+<div class="charts">
+    <section class="panel">
+        <div class="panel-head">
+            <div><h2>Сообщения по дням</h2><p>Посетители, ассистент и операторы</p></div>
+            <div class="legend">
+                <span><i style="background:#6E56F8"></i>Ассистент</span>
+                <span><i style="background:#FF6FAE"></i>Посетители</span>
+                <span><i style="background:#1FAF8B"></i>Оператор</span>
+            </div>
+        </div>
+        <div class="chart" id="chart-days"></div>
+    </section>
+    <section class="panel">
+        <div class="panel-head"><div><h2>Кто отвечал</h2><p>Ассистент против людей</p></div></div>
+        <div class="donut-wrap" id="donut"></div>
+    </section>
+</div>
+
+<div class="charts" style="margin-top:18px;grid-template-columns:1fr 1fr">
+    <section class="panel">
+        <div class="panel-head"><div><h2>По ассистентам</h2><p>Сообщения в диалогах за период</p></div></div>
+        <div class="bars-h" id="by-assistant"></div>
+    </section>
+    <section class="panel">
+        <div class="panel-head"><div><h2>Когда пишут</h2><p>Сообщения посетителей по часам, МСК</p></div></div>
+        <div class="heat" id="heat"></div>
+        <div class="heat-axis">{% for h in range(24) %}<span>{{ h if h % 3 == 0 else '' }}</span>{% endfor %}</div>
+        <p class="small muted" style="margin-top:14px" id="peak"></p>
+    </section>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='analytics.js') }}"></script>
+{% endblock %}

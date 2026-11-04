@@ -182,3 +182,37 @@ cython_debug/
 database.db
 temp_audio/
 ffmpeg/
+# Базы данных и персональные данные
+database.db
+*.db
+*.sqlite3
+
+# Временное аудио и кэш
+temp_audio/
+static/tts_cache/
+static/response.wav
+static/temp_test_speech.wav
+*.wav
+*.mp4
+
+# Бинарники FFmpeg
+ffmpeg/
+*.exe
+
+# Модели голоса Silero (тяжелые веса .pt)
+static/silero_models/
+*.pt
+
+# Исходники Blender и временные автосейвы
+_blender/
+*.blend
+*.blend1
+
+# 3D модели: игнорируем тяжелые (>15МБ, например anime_school_girl.glb),
+# но оставляем легкий ходовой риг ayumi_rigged.glb (<3МБ)
+*.glb
+!static/models3d/ayumi_rigged.glb
+static/models3d/.*
+
+# Дубликаты и лишние картинки в корне
+/delicate-pink-flowers.jpg

@@ -49,7 +49,25 @@
             </div>
         </div>
 
-        <!-- Секция с выбором моделей -->
+        <!-- Секция модели нейросети для ассистента -->
+        <div class="editor-section">
+            <h4>Модель нейросети (LLM)</h4>
+            <div class="form-group">
+                <label for="assistant-model-select">Модель для генерации ответов</label>
+                <select id="assistant-model-select" style="margin-bottom: 8px;">
+                    <option value="" {% if not assistant.model_name %}selected{% endif %}>По умолчанию из глобальных настроек ({{ api_settings.model_name if api_settings else 'deepseek-v4-flash' }})</option>
+                    <option value="deepseek-v4-flash" {% if assistant.model_name == 'deepseek-v4-flash' %}selected{% endif %}>deepseek-v4-flash (Antigravity 4 — Elysium AI)</option>
+                    <option value="deepseek/deepseek-v4.1-flash" {% if assistant.model_name == 'deepseek/deepseek-v4.1-flash' %}selected{% endif %}>deepseek/deepseek-v4.1-flash</option>
+                    <option value="deepseek/deepseek-chat" {% if assistant.model_name == 'deepseek/deepseek-chat' %}selected{% endif %}>deepseek/deepseek-chat</option>
+                    <option value="deepseek/deepseek-r1" {% if assistant.model_name == 'deepseek/deepseek-r1' %}selected{% endif %}>deepseek/deepseek-r1</option>
+                    <option value="custom" {% if assistant.model_name and assistant.model_name not in ['deepseek-v4-flash', 'deepseek/deepseek-v4.1-flash', 'deepseek/deepseek-chat', 'deepseek/deepseek-r1'] %}selected{% endif %}>-- Другая модель (ввести вручную) --</option>
+                </select>
+                <input type="text" name="model_name" id="assistant-model-name" value="{{ assistant.model_name or '' }}" placeholder="Оставьте пустым для использования глобальной модели (deepseek-v4-flash)">
+                <small class="field-hint">Если не указано, используется глобальная модель Elysium AI.</small>
+            </div>
+        </div>
+
+        <!-- Секция с выбором моделей Live2D и TTS -->
         <div class="editor-section">
             <div class="form-group">
                 <label for="live2d-model-select">Live2D Модель</label>
@@ -158,10 +176,9 @@
                     </div>
                 </div>
 
-                <!-- === НОВАЯ ГАЛОЧКА ДЛЯ ГЕНЕРАЦИИ ФРАЗ НЕЙРОСЕТЬЮ === -->
                 <div class="setting-item">
                     <label for="boredom-use-llm"
-                        title="Если включено, ассистент будет сам придумывать фразы для привлечения внимания, используя фразы из списка ниже как примеры стиля.">
+                        title="Если включено, ассистент будет сам придумывать фразы для привлечения внимания через нейросеть.">
                         Придумывать нейросетью
                     </label>
                     <div class="checkbox-wrapper">
@@ -169,7 +186,6 @@
                             assistant.boredom_use_llm %}checked{% endif %}>
                     </div>
                 </div>
-                <!-- ======================================================= -->
 
                 <div class="form-group">
                     <label>Фразы для системы скуки</label>
@@ -192,6 +208,7 @@
                     </div>
                 </div>
             </div>
+
             <div class="interactive-subsection">
                 <div class="setting-item">
                     <label for="patting-enabled" title="Позволяет 'гладить' модель, вызывая реакцию.">Разрешить реакцию
@@ -233,11 +250,41 @@
 
         <!-- Секция с системным промптом -->
         <div class="editor-section">
-            <div class="form-group">
-                <label for="system-prompt-textarea">Системный промпт</label>
-                <textarea name="system_prompt" id="system-prompt-textarea" rows="8"
-                    placeholder="Опишите характер и роль ассистента...">{{ assistant.system_prompt }}</textarea>
+            <div class="prompt-header-actions" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <label for="system-prompt-textarea" style="font-weight: 600; margin: 0;">Системный промпт (Характер и поведение)</label>
+                <div style="display: flex; gap: 8px;">
+                    <button type="button" id="load-default-prompt-btn" class="btn-secondary" style="padding: 4px 10px; font-size: 12px;" title="Загрузить промпт по умолчанию из system_prompt.txt">
+                        📄 Из файла
+                    </button>
+                    <button type="button" id="insert-commands-btn" class="btn-secondary" style="padding: 4px 10px; font-size: 12px;" title="Вставить блок инструкций по командам Live2D">
+                        ✨ Вставить команды 【】
+                    </button>
+                </div>
             </div>
+
+            <div class="form-group">
+                <textarea name="system_prompt" id="system-prompt-textarea" rows="10"
+                    placeholder="Опишите характер, имя и стиль общения ассистента...">{{ assistant.system_prompt }}</textarea>
+            </div>
+
+            <!-- Подсказка по командам Live2D -->
+            <details style="background: rgba(0,0,0,0.03); padding: 10px; border-radius: 6px; font-size: 13px; margin-top: 5px;">
+                <summary style="cursor: pointer; font-weight: 500; color: #007bff;">📋 Шпаргалка по Live2D командам (нажмите, чтобы раскрыть)</summary>
+                <p style="margin: 8px 0 4px 0; color: #555;">Ассистент может сопровождать ответы следующими командами в скобках <code>【...】</code>:</p>
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 6px; margin-top: 6px;">
+                    <div><code>【Киваю головой】</code> — кивок</div>
+                    <div><code>【Махаю головой】</code> — покачать головой</div>
+                    <div><code>【Посмотреть влево】</code> — взгляд влево</div>
+                    <div><code>【Посмотреть вправо】</code> — взгляд вправо</div>
+                    <div><code>【Посмотреть вверх】</code> — взгляд вверх</div>
+                    <div><code>【Посмотреть вниз】</code> — взгляд вниз</div>
+                    <div><code>【Слежу за курсором】</code> — следить за мышью</div>
+                    <div><code>【Голова влево】</code> — наклон влево</div>
+                    <div><code>【Голова вправо】</code> — наклон вправо</div>
+                    <div><code>【Закрыть левый глаз】</code> — моргнуть</div>
+                    <div><code>【Закрыть правый глаз】</code> — моргнуть</div>
+                </div>
+            </details>
         </div>
 
         <!-- Секция с дополнительными настройками -->
@@ -268,7 +315,7 @@
                         value="{{ assistant.pos_y }}">
                 </div>
                 <div class="setting-item">
-                    <label for="memory-depth" title="Сколько 'вопросов-ответов' помнит ассистент">Глубина памяти</label>
+                    <label for="memory-depth" title="Сколько сообщений помнит ассистент">Глубина памяти</label>
                     <input type="range" min="1" max="100" step="1" name="memory_depth" id="memory-depth"
                         value="{{ assistant.memory_depth }}">
                     <input type="number" class="slider-value-input" min="1" max="100" step="1"
@@ -365,9 +412,8 @@
 <script src="{{ url_for('static', filename='libs/live2dcubismcore.min.js') }}"></script>
 <script src="{{ url_for('static', filename='libs/pixi.min.js') }}"></script>
 <script src="{{ url_for('static', filename='libs/cubism4.min.js') }}"></script>
-<!-- Cropper пока можно оставить, он обычно стабилен, но можно скачать и его -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
 
-<!-- Подключаем специальный JavaScript для этой страницы -->
+<!-- Подключаем скрипт редактора -->
 <script src="{{ url_for('static', filename='edit_assistant.js') }}"></script>
 {% endblock %}

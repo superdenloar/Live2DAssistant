@@ -11,6 +11,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let isPatting = false; // Глобальный флаг состояния поглаживания
     let pattingReactionFlag = false; // Глобальный флаг для отправки на сервер
     let boredomTimer = null;
+    let gifAvatar = null; // GIF / PNG-тубер вместо Live2D
+    let model3dAvatar = null; // 3D-модель .glb
 
     // === ПЕРЕМЕННЫЕ ДЛЯ УПРАВЛЕНИЯ МОДЕЛЬЮ ===
     let targetParameters = { ParamAngleX: 0, ParamAngleY: 0, ParamAngleZ: 0, ParamBodyAngleX: 0, ParamEyeLOpen: 1, ParamEyeROpen: 1 };
@@ -151,6 +153,33 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) { console.error("!!! ОШИБКА LIVE2D:", error); }
     }
 
+    // Выбор внешности: Live2D, GIF или без аватара
+    async function applyAvatar(assistant) {
+        const type = assistant.avatar_type || 'live2d';
+        const container = canvas ? canvas.parentElement : null;
+        if (type === 'gif' && container) {
+            if (model3dAvatar) { model3dAvatar.destroy(); model3dAvatar = null; }
+            await loadLive2DModel(null);
+            canvas.style.display = 'none';
+            if (!gifAvatar) gifAvatar = new GifAvatar(container, assistant.gif || {});
+            else gifAvatar.update(assistant.gif || {});
+            return;
+        }
+        if (gifAvatar) { gifAvatar.destroy(); gifAvatar = null; }
+        if (model3dAvatar) { model3dAvatar.destroy(); model3dAvatar = null; }
+        if (type === '3d' && container) {
+            await loadLive2DModel(null);
+            canvas.style.display = 'none';
+            try {
+                const mod = await import('/static/model3d_avatar.js');
+                model3dAvatar = await mod.createModel3DAvatar(container, assistant.model3d || {}, {});
+            } catch (e) { console.error('3D:', e); }
+            return;
+        }
+        if (canvas) canvas.style.display = '';
+        await loadLive2DModel(type === 'text' ? null : assistant.live2d_model_path);
+    }
+
     function updateModelTransform() {
         if (!live2dModel) return;
         const scale = (canvas.parentElement.clientHeight / live2dModel.height) * activeAssistantConfig.scale;
@@ -216,7 +245,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
             activeAssistantConfig = { ...APP_CONFIG, ...data.assistant };
             renderChatHistory(data.messages);
-            await loadLive2DModel(data.assistant.live2d_model_path);
+            await applyAvatar(data.assistant);
             startBoredomTimer();
         } catch (error) { 
             console.error("!!! КРИТИЧЕСКАЯ ОШИБКА загрузки чата:", error);
@@ -258,7 +287,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     wrapperToUpdate.dataset.messageId = data.ai_message_id;
                 }
                 const thinkingBubble = wrapperToUpdate.querySelector('.message');
-                const cleanAiText = data.ai_text.replace(/【.*?】/g, '').trim();
+                const cleanAiText = data.ai_text.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/【.*?】/g, '').trim();
                 if (cleanAiText) {
                     thinkingBubble.textContent = cleanAiText;
                     thinkingBubble.dataset.originalText = data.ai_text;
@@ -313,6 +342,168 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (error) {
                 console.error(error);
                 alert(`Не удалось сохранить профиль: ${error.message}`);
+            }
+        });
+    }
+
+    // --- НАСТРОЙКИ API (ELYSIUM AI) ---
+    const saveApiBtn = document.getElementById('save-api-btn');
+    const testApiBtn = document.getElementById('test-api-btn');
+    const apiProviderSelect = document.getElementById('api-provider');
+    const apiUrlInput = document.getElementById('api-url');
+    const apiKeyInput = document.getElementById('api-key');
+    const apiModelInput = document.getElementById('api-model');
+    const apiModelSelect = document.getElementById('api-model-select');
+    const apiTempInput = document.getElementById('api-temperature');
+    const tempValSpan = document.getElementById('temp-val');
+    const apiEnableCheckbox = document.getElementById('api-enable');
+    const toggleKeyVisibilityBtn = document.getElementById('toggle-key-visibility');
+    const apiStatusBox = document.getElementById('api-status-box');
+
+    if (apiTempInput && tempValSpan) {
+        apiTempInput.addEventListener('input', () => {
+            tempValSpan.textContent = apiTempInput.value;
+        });
+    }
+
+    if (toggleKeyVisibilityBtn && apiKeyInput) {
+        toggleKeyVisibilityBtn.addEventListener('click', () => {
+            if (apiKeyInput.type === 'password') {
+                apiKeyInput.type = 'text';
+                toggleKeyVisibilityBtn.textContent = '🙈';
+            } else {
+                apiKeyInput.type = 'password';
+                toggleKeyVisibilityBtn.textContent = '👁️';
+            }
+        });
+    }
+
+    if (apiProviderSelect) {
+        apiProviderSelect.addEventListener('change', () => {
+            if (apiProviderSelect.value === 'elysium') {
+                if (!apiUrlInput.value || apiUrlInput.value.includes('127.0.0.1')) {
+                    apiUrlInput.value = 'https://elysiumai.garden/v1';
+                }
+                if (!apiModelInput.value || apiModelInput.value.includes('gemma')) {
+                    apiModelInput.value = 'deepseek-v4-flash';
+                }
+                if (apiModelSelect) apiModelSelect.value = 'deepseek-v4-flash';
+            } else if (apiProviderSelect.value === 'lm_studio') {
+                apiUrlInput.value = 'http://127.0.0.1:1234/v1';
+            }
+        });
+    }
+
+    if (apiModelSelect && apiModelInput) {
+        apiModelSelect.addEventListener('change', () => {
+            if (apiModelSelect.value !== 'custom') {
+                apiModelInput.value = apiModelSelect.value;
+            }
+        });
+        apiModelInput.addEventListener('input', () => {
+            let matched = false;
+            for (let opt of apiModelSelect.options) {
+                if (opt.value === apiModelInput.value) {
+                    apiModelSelect.value = opt.value;
+                    matched = true;
+                    break;
+                }
+            }
+            if (!matched && apiModelInput.value) {
+                apiModelSelect.value = 'custom';
+            }
+        });
+    }
+
+    if (saveApiBtn) {
+        saveApiBtn.addEventListener('click', async () => {
+            const payload = {
+                provider: apiProviderSelect ? apiProviderSelect.value : 'elysium',
+                api_url: apiUrlInput ? apiUrlInput.value.trim() : 'https://elysiumai.garden/v1',
+                api_key: apiKeyInput ? apiKeyInput.value.trim() : '',
+                model_name: apiModelInput ? apiModelInput.value.trim() : 'deepseek-v4-flash',
+                temperature: apiTempInput ? parseFloat(apiTempInput.value) : 0.7,
+                enable_ai: apiEnableCheckbox ? apiEnableCheckbox.checked : true
+            };
+
+            try {
+                saveApiBtn.disabled = true;
+                const response = await fetch('/api/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+                if (data.success) {
+                    saveApiBtn.textContent = 'Сохранено! ✓';
+                    setTimeout(() => { 
+                        saveApiBtn.textContent = '💾 Сохранить'; 
+                        saveApiBtn.disabled = false;
+                    }, 2000);
+                } else {
+                    throw new Error(data.message || 'Ошибка сохранения настроек');
+                }
+            } catch (err) {
+                saveApiBtn.disabled = false;
+                console.error('Ошибка сохранения настроек API:', err);
+                alert('Не удалось сохранить настройки API: ' + err.message);
+            }
+        });
+    }
+
+    if (testApiBtn) {
+        testApiBtn.addEventListener('click', async () => {
+            const payload = {
+                provider: apiProviderSelect ? apiProviderSelect.value : 'elysium',
+                api_url: apiUrlInput ? apiUrlInput.value.trim() : 'https://elysiumai.garden/v1',
+                api_key: apiKeyInput ? apiKeyInput.value.trim() : '',
+                model_name: apiModelInput ? apiModelInput.value.trim() : 'deepseek-v4-flash'
+            };
+
+            if (!payload.api_key && payload.provider !== 'lm_studio') {
+                if (apiStatusBox) {
+                    apiStatusBox.style.display = 'block';
+                    apiStatusBox.className = 'status-box error';
+                    apiStatusBox.textContent = '⚠️ Пожалуйста, введите API ключ для проверки!';
+                }
+                return;
+            }
+
+            try {
+                testApiBtn.disabled = true;
+                testApiBtn.textContent = '⏳ Проверка...';
+                if (apiStatusBox) {
+                    apiStatusBox.style.display = 'block';
+                    apiStatusBox.className = 'status-box loading';
+                    apiStatusBox.textContent = 'Подключение к серверу и запрос к модели...';
+                }
+
+                const response = await fetch('/api/settings/test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    if (apiStatusBox) {
+                        apiStatusBox.className = 'status-box success';
+                        apiStatusBox.innerHTML = '<strong>✓ Успешно!</strong><br>' + (data.message || '');
+                    }
+                } else {
+                    if (apiStatusBox) {
+                        apiStatusBox.className = 'status-box error';
+                        apiStatusBox.innerHTML = '<strong>✗ Ошибка:</strong><br>' + (data.message || '');
+                    }
+                }
+            } catch (err) {
+                if (apiStatusBox) {
+                    apiStatusBox.className = 'status-box error';
+                    apiStatusBox.innerHTML = '<strong>✗ Ошибка сети:</strong><br>' + (err.message || '');
+                }
+            } finally {
+                testApiBtn.disabled = false;
+                testApiBtn.textContent = '⚡ Проверить';
             }
         });
     }
@@ -441,7 +632,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Вспомогательные функции ---
     function lockUI() { if (thinkingOverlay) thinkingOverlay.style.display = 'flex'; }
     function unlockUI() { if (thinkingOverlay) thinkingOverlay.style.display = 'none'; }
-    function playAudioWithLipSync(audioUrl) { if (!live2dModel) return; if (!audioContext) { try { audioContext = new (window.AudioContext || window.webkitAudioContext)(); analyser = audioContext.createAnalyser(); analyser.fftSize = 256; } catch (e) { return; } } const audio = new Audio(audioUrl); const source = audioContext.createMediaElementSource(audio); source.connect(analyser); analyser.connect(audioContext.destination); const playPromise = audio.play(); if (playPromise !== undefined) { playPromise.catch(error => { addMessage("Браузер заблокировал звук. Кликните по странице и отправьте сообщение еще раз.", "ai"); }); } audio.onplay = () => { isLipSyncRunning = true; updateLipSync(); }; audio.onended = () => { isLipSyncRunning = false; }; }
+    function playAudioWithLipSync(audioUrl) { if (!audioContext) { try { audioContext = new (window.AudioContext || window.webkitAudioContext)(); analyser = audioContext.createAnalyser(); analyser.fftSize = 1024; analyser.connect(audioContext.destination); } catch (e) { new Audio(audioUrl).play().catch(() => {}); return; } } if (audioContext.state === 'suspended') audioContext.resume(); const audio = new Audio(audioUrl); const source = audioContext.createMediaElementSource(audio); source.connect(analyser); if (gifAvatar) gifAvatar.attachAnalyser(analyser); if (model3dAvatar) model3dAvatar.attachAnalyser(analyser); const playPromise = audio.play(); if (playPromise !== undefined) { playPromise.catch(error => { addMessage("Браузер заблокировал звук. Кликните по странице и отправьте сообщение еще раз.", "ai"); }); } audio.onplay = () => { isLipSyncRunning = true; updateLipSync(); }; audio.onended = () => { isLipSyncRunning = false; }; }
     
     function addMessage(text, sender, msgId = null, audioUrl = null) {
         const senderClass = (sender === 'assistant' || sender === 'system error') ? 'ai' : sender;
@@ -483,6 +674,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateLipSync() { if (!isLipSyncRunning || !live2dModel || !analyser) { if (live2dModel?.internalModel) { live2dModel.internalModel.coreModel.setParameterValueById('ParamMouthOpenY', 0); } return; } const dataArray = new Uint8Array(analyser.frequencyBinCount); analyser.getByteFrequencyData(dataArray); let sum = 0; for (let i = 0; i < dataArray.length; i++) { sum += dataArray[i]; } let average = sum / dataArray.length; const mouthOpenY = Math.min(1.0, (average / 128) * 1.5); live2dModel.internalModel.coreModel.setParameterValueById('ParamMouthOpenY', mouthOpenY); requestAnimationFrame(updateLipSync); }
     
     async function executeLive2DCommand(commands) {
+        if (gifAvatar) { (commands || []).forEach(c => gifAvatar.command(c)); return; }
+        if (model3dAvatar) { (commands || []).forEach(c => model3dAvatar.command(c)); return; }
         if (poseLifetimeCounter > 0) {
             poseLifetimeCounter--;
             if (poseLifetimeCounter === 0) {

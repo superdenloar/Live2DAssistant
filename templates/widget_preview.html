@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Предпросмотр виджета</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, sans-serif; background: #F7F8FB; color: #2a2a3a; min-height: 100vh; overflow: hidden; }
+  .bar { height: 64px; display: flex; align-items: center; gap: 28px; padding: 0 48px; background: #fff; border-bottom: 1px solid #E8EAF0; }
+  .bar b { font-size: 18px; } .bar i { width: 64px; height: 10px; border-radius: 5px; background: #E8EAF0; display: block; }
+  .hero { margin: 40px 48px; display: grid; grid-template-columns: 1.2fr 1fr; gap: 40px; }
+  .t1 { height: 40px; width: 80%; border-radius: 10px; background: #DCDFEA; margin-bottom: 14px; }
+  .t2 { height: 14px; border-radius: 7px; background: #E8EAF0; margin-bottom: 10px; }
+  .btn { width: 160px; height: 44px; border-radius: 12px; background: #2E5B3A; margin-top: 22px; }
+  .img { height: 260px; border-radius: 22px; background: linear-gradient(135deg, #E3F4DE, #FFF3DA); }
+  .cards { margin: 0 48px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+  .cards div { height: 180px; border-radius: 18px; background: #fff; border: 1px solid #E8EAF0; }
+  @media (max-width: 600px) { .hero, .cards { grid-template-columns: 1fr; margin: 20px; } .bar { padding: 0 20px; } }
+</style>
+</head>
+<body>
+  <div class="bar"><b>Ваш сайт</b><i></i><i></i><i></i></div>
+  <div class="hero"><div><div class="t1"></div><div class="t1" style="width:55%"></div><div class="t2"></div><div class="t2" style="width:70%"></div><div class="btn"></div></div><div class="img"></div></div>
+  <div class="cards"><div></div><div></div><div></div><div></div></div>
+  <script src="{{ server_url }}/static/widget.js" data-server="{{ server_url }}" data-assistant-id="{{ assistant.id }}" data-open="true" data-preview="true"></script>
+</body>
+</html>

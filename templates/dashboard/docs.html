@@ -1,0 +1,166 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}Документация{% endblock %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Документация</h1>
+        <p>Всё, что нужно разработчику, чтобы поставить ассистента на сайт и научить его понимать страницу.</p>
+    </div>
+</div>
+
+<div class="docs">
+    <nav class="docs-nav" id="docs-nav">
+        <a href="#quickstart">Быстрый старт</a>
+        <a href="#context">Контекст страницы</a>
+        <a href="#js-api">JS API виджета</a>
+        <a href="#operator">Живой оператор</a>
+        <a href="#avatars">Типы аватаров</a>
+        <a href="#commands">Команды движений</a>
+        <a href="#rest">REST API</a>
+        <a href="#example">Пример: шашки</a>
+        <a href="#faq">Вопросы</a>
+    </nav>
+
+    <div>
+        <section class="doc-section" id="quickstart">
+            <h2>Быстрый старт</h2>
+            <p>Ассистент встраивается одним тегом <code>&lt;script&gt;</code>. Внешний вид, голос, цвета и приветствие подтягиваются из кабинета — менять код на сайте после настройки не нужно.</p>
+            <ol class="steps">
+                <li><div><b>Создайте ассистента</b><p class="small">В разделе <a href="{{ url_for('dash_assistants') }}">Ассистенты</a> выберите тип: Live2D, GIF или чат-бот.</p></div></li>
+                <li><div><b>Настройте характер и внешность</b><p class="small">Промпт, голос, модель, цвета виджета. Проверьте в превью и в студии.</p></div></li>
+                <li><div><b>Вставьте код перед <code>&lt;/body&gt;</code></b>
+                    <div class="field" style="margin:10px 0 0;max-width:320px">
+                        <select id="doc-assistant">{% for a in assistants %}<option value="{{ a.id }}">{{ a.name }} · #{{ a.id }}</option>{% endfor %}</select>
+                    </div>
+                    <div class="codebox"><button class="copy" data-copy>{{ icon('copy', 14) }} Копировать</button><pre id="doc-snippet" data-hl="html">&lt;script src="{{ server_url }}/static/widget.js"
+        data-server="{{ server_url }}"
+        data-assistant-id="{{ assistants[0].id if assistants else 1 }}"&gt;&lt;/script&gt;</pre></div>
+                </div></li>
+            </ol>
+            <table class="doc-table">
+                <tr><th>Атрибут</th><th>Что делает</th></tr>
+                <tr><td><code>data-server</code></td><td>Адрес сервера Live2D Assistant.</td></tr>
+                <tr><td><code>data-assistant-id</code></td><td>ID ассистента из кабинета.</td></tr>
+                <tr><td><code>data-open</code></td><td>Необязательный. <code>"true"</code> — открыть виджет сразу после загрузки страницы.</td></tr>
+                <tr><td><code>data-mode</code></td><td>Необязательный. <code>novel</code> или <code>popup</code> — переопределяет режим из настроек.</td></tr>
+            </table>
+        </section>
+
+        <section class="doc-section" id="context">
+            <h2>Контекст страницы</h2>
+            <p>Ассистент может видеть то, что видит посетитель: товар в корзине, шаг оформления, позицию в игре. Объявите функцию <code>window.__ASSISTANT_CONTEXT__</code> — виджет вызовет её перед каждым сообщением и передаст результат в модель.</p>
+            <div class="codebox"><button class="copy" data-copy>{{ icon('copy', 14) }} Копировать</button><pre data-hl="js">window.__ASSISTANT_CONTEXT__ = () => ({
+  'Страница': 'Корзина',
+  'Товаров в корзине': cart.items.length,
+  'Сумма заказа': cart.total + ' ₽',
+  'Бесплатная доставка от': '3000 ₽'
+});</pre></div>
+            <div class="callout">{{ icon('sparkles', 18) }}<span>Ассистенту сказано опираться только на эти данные и не придумывать цифры. Чем точнее контекст — тем умнее ответы. Ключи можно писать по-русски: так модели проще.</span></div>
+        </section>
+
+        <section class="doc-section" id="js-api">
+            <h2>JS API виджета</h2>
+            <p>После загрузки виджет создаёт объект <code>window.LW</code>. Через него сайт может открыть окно, задать вопрос от имени посетителя или заставить персонажа что-то сказать.</p>
+            <table class="doc-table">
+                <tr><th>Метод</th><th>Описание</th></tr>
+                <tr><td><code>LW.open()</code> / <code>LW.close()</code></td><td>Открыть или свернуть виджет.</td></tr>
+                <tr><td><code>LW.ask(text)</code></td><td>Отправить вопрос, как будто его написал посетитель. Возвращает Promise с ответом.</td></tr>
+                <tr><td><code>LW.say(text)</code></td><td>Персонаж произносит текст без запроса к ИИ (подсказки, реакции на события).</td></tr>
+                <tr><td><code>LW.setContext(obj)</code></td><td>Задать контекст объектом вместо функции.</td></tr>
+                <tr><td><code>LW.callOperator()</code></td><td>Переключить посетителя на живого оператора.</td></tr>
+                <tr><td><code>LW.on(event, fn)</code></td><td>События: <code>ready</code>, <code>open</code>, <code>close</code>, <code>message</code>, <code>status</code>.</td></tr>
+            </table>
+            <div class="codebox"><button class="copy" data-copy>{{ icon('copy', 14) }} Копировать</button><pre data-hl="js">// Подсказка, когда посетитель долго смотрит на тарифы
+setTimeout(() => window.LW && LW.say('Если сомневаетесь с тарифом — спросите меня!'), 20000);
+
+// Кнопка «Спросить ассистента» на странице
+document.querySelector('#help').onclick = async () => {
+  LW.open();
+  const answer = await LW.ask('Какой ход сейчас лучше?');
+  console.log(answer.text);
+};</pre></div>
+        </section>
+
+        <section class="doc-section" id="operator">
+            <h2>Живой оператор</h2>
+            <p>Посетитель может в любой момент нажать кнопку с гарнитурой в шапке виджета или просто написать «позовите оператора». Диалог получит статус «Ждёт оператора» и поднимется наверх в разделе <a href="{{ url_for('dash_dialogs') }}">Диалоги</a>, а в меню загорится счётчик.</p>
+            <p>Пока диалог у оператора, ассистент молчит: сообщения посетителя приходят вам, ваши ответы появляются у посетителя в окне виджета с подписью «Оператор». Кнопка «Вернуть ассистенту» снова включает ИИ — он увидит в истории, что ответил человек.</p>
+        </section>
+
+        <section class="doc-section" id="avatars">
+            <h2>Типы аватаров</h2>
+            <table class="doc-table">
+                <tr><th>Тип</th><th>Как работает</th></tr>
+                <tr><td>Live2D</td><td>Модель Cubism 4 (<code>.model3.json</code>) из папки <code>static/Live2d_models</code>. Губы двигаются по громкости голоса, работают команды движений и поглаживание.</td></tr>
+                <tr><td>GIF / PNG-тубер</td><td><b>Кадры по громкости:</b> загрузите GIF, где первый кадр — рот закрыт, последний — открыт. Номер кадра выбирается по громкости речи с плавным сглаживанием, потолок громкости подстраивается сам.<br><b>Две картинки:</b> «молчит» и «говорит», вторая может быть анимированным GIF.</td></tr>
+                <tr><td>Чат-бот</td><td>Окно чата без персонажа. Голос, оператор и аналитика доступны.</td></tr>
+                <tr><td>3D VRM, видео-аватар, голосовой агент</td><td><span class="badge butter">В разработке</span></td></tr>
+            </table>
+        </section>
+
+        <section class="doc-section" id="commands">
+            <h2>Команды движений</h2>
+            <p>Ассистент вставляет в ответ команды в скобках <code>【】</code>. Они не показываются посетителю и не озвучиваются — только исполняются персонажем. GIF-аватары понимают кивок, покачивание, наклоны и взгляды.</p>
+            <div class="cmd-grid" style="margin-top:12px">
+                {% for c, d in [('Киваю головой','согласие'),('Махаю головой','несогласие'),('Посмотреть влево','взгляд'),('Посмотреть вправо','взгляд'),('Посмотреть вверх','задумался'),('Посмотреть вниз','смутился'),('Слежу за курсором','следит за мышью'),('Голова влево','наклон'),('Голова вправо','наклон'),('Закрыть левый глаз','подмигнуть'),('Закрыть правый глаз','подмигнуть')] %}
+                <div class="cmd-chip"><code>【{{ c }}】</code><span>{{ d }}</span></div>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section class="doc-section" id="rest">
+            <h2>REST API</h2>
+            <p>Виджет использует эти же методы — их можно вызывать со своего бэкенда.</p>
+            <table class="doc-table">
+                <tr><th>Метод</th><th>Описание</th></tr>
+                <tr><td><span class="method post">POST</span><code>/api/bridge/chat</code></td><td>Сообщение ассистенту. JSON: <code>assistant_id</code>, <code>session_id</code>, <code>message</code>, <code>game_context</code>. Ответ: <code>ai_text</code>, <code>audio_url</code>, <code>status</code>.</td></tr>
+                <tr><td><span class="method get">GET</span><code>/api/widget/config/&lt;id&gt;</code></td><td>Настройки внешности и виджета.</td></tr>
+                <tr><td><span class="method post">POST</span><code>/api/widget/handoff</code></td><td>Позвать оператора (<code>cancel: true</code> — отменить).</td></tr>
+                <tr><td><span class="method get">GET</span><code>/api/widget/poll</code></td><td>Новые ответы оператора: <code>?assistant_id=&amp;session_id=&amp;after=</code>.</td></tr>
+                <tr><td><span class="method get">GET</span><code>/api/assistants</code></td><td>Список ассистентов.</td></tr>
+            </table>
+            <div class="codebox"><button class="copy" data-copy>{{ icon('copy', 14) }} Копировать</button><pre data-hl="js">const r = await fetch('{{ server_url }}/api/bridge/chat', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ assistant_id: 1, session_id: 'user-42', message: 'Где мой заказ?' })
+});
+const { ai_text, audio_url } = await r.json();</pre></div>
+        </section>
+
+        <section class="doc-section" id="example">
+            <h2>Пример: тренер по шашкам</h2>
+            <p>В комплекте есть демо-сайт с русскими шашками (<code>run_checkers.bat</code>, порт 8080). Встроенный движок с перебором вариантов считает оценку позиции, лучший ход и качество каждого хода игрока и отдаёт всё это ассистенту через контекст страницы. Поэтому ассистент советует реальные ходы, а не выдумывает их, и сам комментирует ошибки.</p>
+            <a class="btn btn-ghost" href="http://127.0.0.1:8080" target="_blank" style="margin-top:12px">{{ icon('game', 18) }} Открыть шашки</a>
+        </section>
+
+        <section class="doc-section" id="faq">
+            <h2>Вопросы</h2>
+            <h3>Виджет не появился на сайте</h3>
+            <p>Проверьте, что сервер ассистента запущен и адрес в <code>data-server</code> открывается из браузера посетителя. Ошибки видны в консоли браузера с префиксом <code>[Widget]</code>.</p>
+            <h3>Нет звука</h3>
+            <p>Браузеры запрещают звук до первого клика по странице. После любого взаимодействия голос заработает. Также проверьте голосовую модель в редакторе ассистента.</p>
+            <h3>Ассистент отвечает «API ключ не настроен»</h3>
+            <p>Укажите ключ в <a href="{{ url_for('dash_settings') }}">Настройках</a> и нажмите «Проверить подключение».</p>
+        </section>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+    const sel = document.getElementById('doc-assistant');
+    const pre = document.getElementById('doc-snippet');
+    const server = {{ server_url|tojson }};
+    sel && sel.addEventListener('change', () => {
+        pre.textContent = `<script src="${server}/static/widget.js"\n        data-server="${server}"\n        data-assistant-id="${sel.value}"><\/script>`;
+        Dash.highlight(pre.parentElement.parentElement);
+    });
+    // Подсветка пункта оглавления
+    const links = Array.from(document.querySelectorAll('#docs-nav a'));
+    const io = new IntersectionObserver(entries => {
+        entries.forEach(en => { if (en.isIntersecting) links.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + en.target.id)); });
+    }, { rootMargin: '-20% 0px -70% 0px' });
+    document.querySelectorAll('.doc-section').forEach(s => io.observe(s));
+})();
+</script>
+{% endblock %}

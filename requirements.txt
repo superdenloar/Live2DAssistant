@@ -9,3 +9,4 @@ torchaudio
 Flask-SQLAlchemy
 fastapi
 uvicorn
+Pillow

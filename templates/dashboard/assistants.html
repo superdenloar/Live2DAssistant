@@ -1,0 +1,125 @@
+{% extends 'dashboard/base.html' %}
+{% block title %}Ассистенты{% endblock %}
+{% set type_meta = {
+    'live2d': ('Live2D', 'live2d', ''),
+    'gif': ('GIF', 'gif', 'pink'),
+    'text': ('Чат-бот', 'text', 'grey'),
+    '3d': ('3D · бета', 'cube', 'butter'),
+} %}
+{% block content %}
+<div class="page-head">
+    <div>
+        <h1>Ассистенты</h1>
+        <p>Персонажи, которые отвечают посетителям ваших сайтов. Настройте характер, внешность и голос, затем вставьте код виджета на сайт.</p>
+    </div>
+    <div class="page-actions">
+        <a class="btn btn-ghost" href="{{ url_for('dash_docs') }}#quickstart">{{ icon('code', 18) }} Как встроить</a>
+        <button class="btn btn-primary" data-open="create-modal">{{ icon('plus', 18) }} Создать ассистента</button>
+    </div>
+</div>
+
+<div class="assistant-grid">
+    {% for a in assistants %}
+    {% set t = type_meta.get(a.avatar_type or 'live2d', type_meta['live2d']) %}
+    <article class="a-card">
+        <div class="a-stage">
+            <span class="badge {{ t[2] }} type">{{ icon(t[1], 14) }} {{ t[0] }}</span>
+            <span class="badge mint live"><span class="dot"></span> Активен</span>
+            <img class="portrait" src="{{ url_for('static', filename=a.photo_url) }}" alt="" onerror="this.src='{{ url_for('static', filename='img/default_avatar.png') }}'">
+        </div>
+        <div class="a-body">
+            <h3>{{ a.name }}</h3>
+            <p>{{ a.description or 'Без описания' }}</p>
+            <div class="a-stats">
+                <div><b>{{ stats[a.id].chats }}</b>диалогов</div>
+                <div><b>{{ stats[a.id].messages }}</b>сообщений</div>
+                <div><b>#{{ a.id }}</b>ID</div>
+            </div>
+        </div>
+        <div class="a-foot">
+            <a class="btn btn-soft btn-sm" href="{{ url_for('edit_assistant', assistant_id=a.id) }}">{{ icon('edit', 16) }} Настроить</a>
+            <a class="btn btn-ghost btn-sm" href="{{ url_for('index', assistant=a.id) }}" title="Поговорить в студии">{{ icon('play', 16) }} Тест</a>
+            <a class="btn btn-ghost btn-sm" href="{{ url_for('test_site', a=a.id) }}" target="_blank" title="Посмотреть на тестовом сайте">{{ icon('globe', 16) }}</a>
+            <button class="btn btn-ghost btn-sm embed-btn" data-id="{{ a.id }}" data-name="{{ a.name }}" title="Код для сайта">{{ icon('code', 16) }}</button>
+        </div>
+    </article>
+    {% endfor %}
+    <button class="a-card new" data-open="create-modal">
+        <span class="plus">{{ icon('plus', 28) }}</span>
+        <b>Новый ассистент</b>
+        <span class="small">Live2D, GIF или классический чат-бот</span>
+    </button>
+</div>
+{% endblock %}
+
+{% block modals %}
+<div class="modal-backdrop" id="create-modal">
+    <div class="modal wide" role="dialog" aria-labelledby="create-title">
+        <button class="btn btn-icon modal-close" data-close aria-label="Закрыть">{{ icon('x') }}</button>
+        <h2 id="create-title">Новый ассистент</h2>
+        <p class="muted">Выберите, как ассистент будет выглядеть на сайте. Тип можно сменить позже в редакторе.</p>
+        <form id="create-form" action="{{ url_for('add_assistant') }}" method="GET">
+            <input type="hidden" name="type" id="create-type" value="live2d">
+            <div class="type-grid">
+                {% for t in avatar_types %}
+                <button type="button" class="type-opt {% if not t.ready %}soon{% endif %} {% if loop.first %}selected{% endif %}"
+                        data-type="{{ t.id }}" {% if not t.ready %}aria-disabled="true"{% endif %}>
+                    {% if not t.ready %}<span class="badge butter">В разработке</span>{% endif %}
+                    <span class="t-ic">{{ icon({'live2d':'live2d','gif':'gif','text':'text','3d':'cube','vrm':'cube','video':'video','voice':'mic'}[t.id], 22) }}</span>
+                    <b>{{ t.name }}</b>
+                    <span class="d">{{ t.desc }}</span>
+                </button>
+                {% endfor %}
+            </div>
+            <div class="callout" style="margin-top:16px">{{ icon('palette', 18) }}<span><b>Нет своего персонажа?</b> Наша студия нарисует и анимирует Live2D-модель под ваш бренд, подберёт голос и пропишет характер — под ключ.</span></div>
+            <div class="field" style="margin-top:16px">
+                <label for="create-name">Имя ассистента</label>
+                <input type="text" id="create-name" name="name" placeholder="Например, Лила из поддержки" maxlength="80">
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-ghost" data-close>Отмена</button>
+                <button type="submit" class="btn btn-primary">{{ icon('sparkles', 18) }} Создать и настроить</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal-backdrop" id="embed-modal">
+    <div class="modal" role="dialog" aria-labelledby="embed-title">
+        <button class="btn btn-icon modal-close" data-close aria-label="Закрыть">{{ icon('x') }}</button>
+        <h2 id="embed-title">Код для сайта</h2>
+        <p class="muted">Вставьте перед закрывающим тегом <code>&lt;/body&gt;</code>. Виджет подхватит внешний вид, голос и цвета из настроек.</p>
+        <div class="codebox" style="margin-top:16px"><button class="copy" data-copy>{{ icon('copy', 14) }} Копировать</button><pre id="embed-code" data-hl="html"></pre></div>
+        <div class="modal-actions">
+            <a class="btn btn-ghost" id="embed-docs" href="{{ url_for('dash_docs') }}#js-api">JS API и контекст страницы</a>
+            <button class="btn btn-primary" data-close>Готово</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    const typeInput = document.getElementById('create-type');
+    document.querySelectorAll('.type-opt').forEach(opt => {
+        opt.addEventListener('click', () => {
+            if (opt.classList.contains('soon')) {
+                Dash.toast(opt.querySelector('b').textContent + ' — в разработке. Скоро будет доступно!');
+                return;
+            }
+            document.querySelectorAll('.type-opt').forEach(o => o.classList.remove('selected'));
+            opt.classList.add('selected');
+            typeInput.value = opt.dataset.type;
+        });
+    });
+    const server = location.origin;
+    document.querySelectorAll('.embed-btn').forEach(btn => btn.addEventListener('click', () => {
+        const pre = document.getElementById('embed-code');
+        pre.textContent = `<!-- ${btn.dataset.name} · Live2D Assistant -->\n<script src="${server}/static/widget.js"\n        data-server="${server}"\n        data-assistant-id="${btn.dataset.id}"><\/script>`;
+        Dash.highlight(document.getElementById('embed-modal'));
+        Dash.openModal('embed-modal');
+    }));
+})();
+</script>
+{% endblock %}

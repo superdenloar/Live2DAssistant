@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Сакура·Чай — демо-сайт с ассистентом</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+<style>
+  body { background: #FBFFF8; }
+  .demo-bar { background: var(--ink); color: #fff; font-size: 13.5px; padding: 10px 20px; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+  .demo-bar select { background: rgba(255,255,255,.1); color: #fff; border: 1px solid rgba(255,255,255,.25); border-radius: 8px; padding: 4px 8px; }
+  .demo-bar select option { color: #000; }
+  .demo-bar a { color: #FFB8D6; margin-left: auto; }
+  .shop { width: min(1100px, 100% - 32px); margin: 0 auto; padding: 28px 0 80px; }
+  .shop-head { display: flex; align-items: center; gap: 24px; margin-bottom: 36px; }
+  .shop-head b { font-family: var(--font-display); font-size: 22px; color: #2E5B3A; }
+  .shop-head nav { display: flex; gap: 18px; color: #557; font-size: 14px; }
+  .shop-head .cart { margin-left: auto; background: #2E5B3A; color: #fff; padding: 8px 14px; border-radius: 12px; font-weight: 600; font-size: 14px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 20px; }
+  .item { background: #fff; border: 1px solid #E5EEE0; border-radius: 22px; padding: 16px; }
+  .item .ph { height: 150px; border-radius: 16px; display: grid; place-items: center; font-size: 54px; }
+  .item h3 { font-family: var(--font); font-size: 16px; margin: 12px 0 4px; }
+  .item p { color: #6A7A6A; font-size: 13.5px; min-height: 38px; }
+  .item .row { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; }
+  .item .price { font-weight: 700; font-size: 17px; }
+  .item button { background: #2E5B3A; color: #fff; border: 0; border-radius: 10px; padding: 8px 12px; font-weight: 600; cursor: pointer; }
+  .hero-b { border-radius: 28px; padding: 36px; background: linear-gradient(120deg, #E3F4DE, #FFF3DA); margin-bottom: 32px; }
+  .hero-b h1 { font-size: 34px; color: #24452D; max-width: 18ch; }
+  .hero-b p { color: #4D5F4D; margin-top: 10px; max-width: 46ch; }
+  .hero-b .btn { margin-top: 18px; background: #2E5B3A; color: #fff; }
+</style>
+</head>
+<body>
+<div class="demo-bar">
+  <span>Это демо-сайт: так ассистент выглядит у ваших клиентов. Напишите «позовите оператора», чтобы проверить передачу диалога.</span>
+  <label>Ассистент:
+    <select onchange="location.href='/demo/'+this.value">
+      {% for a in assistants %}<option value="{{ a.id }}" {% if assistant and a.id == assistant.id %}selected{% endif %}>{{ a.name }}</option>{% endfor %}
+    </select>
+  </label>
+  <a href="{{ url_for('dash_dialogs') }}" target="_blank">Открыть диалоги в кабинете</a>
+</div>
+<div class="shop">
+  <div class="shop-head"><b>Сакура·Чай</b><nav><span>Каталог</span><span>Доставка</span><span>О нас</span></nav><span class="cart" id="cart">Корзина · 0 ₽</span></div>
+  <div class="hero-b">
+    <h1>Японский чай с доставкой по всей России</h1>
+    <p>Матча, сенча и улун из небольших хозяйств. Не знаете, что выбрать? Спросите ассистента справа внизу.</p>
+    <button class="btn" onclick="window.LW && (LW.open(), LW.ask('Посоветуй чай для новичка'))">Спросить ассистента</button>
+  </div>
+  <div class="grid" id="grid"></div>
+</div>
+<script>
+  const items = [
+    { n: 'Матча церемониальная', d: 'Яркая, сливочная, для чаши и латте', p: 1290, e: '🍵', c: '#E3F4DE' },
+    { n: 'Сенча Асамуси', d: 'Свежая травянистая сладость', p: 890, e: '🌿', c: '#EEF7E2' },
+    { n: 'Ходзича', d: 'Обжаренный, мало кофеина, на вечер', p: 760, e: '🍂', c: '#F8EBDD' },
+    { n: 'Генмайча', d: 'Зелёный чай с жареным рисом', p: 640, e: '🍚', c: '#FFF3DA' },
+    { n: 'Сакура-улун', d: 'Цветочный аромат, ограниченная партия', p: 1490, e: '🌸', c: '#FFE6F1' },
+    { n: 'Набор «Первая чаша»', d: 'Венчик, чаша и 30 г матчи', p: 3290, e: '🎁', c: '#EEEAFF' },
+  ];
+  const cart = [];
+  document.getElementById('grid').innerHTML = items.map((it, i) => `<div class="item"><div class="ph" style="background:${it.c}">${it.e}</div><h3>${it.n}</h3><p>${it.d}</p><div class="row"><span class="price">${it.p.toLocaleString('ru-RU')} ₽</span><button data-i="${i}">В корзину</button></div></div>`).join('');
+  document.getElementById('grid').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    cart.push(items[+b.dataset.i]);
+    const sum = cart.reduce((a, x) => a + x.p, 0);
+    document.getElementById('cart').textContent = 'Корзина · ' + sum.toLocaleString('ru-RU') + ' ₽';
+    if (window.LW && cart.length === 1) LW.say('Отличный выбор! От 3 000 ₽ доставка бесплатная.');
+  });
+  // Контекст страницы для ассистента
+  window.__ASSISTANT_CONTEXT__ = () => ({
+    'Сайт': 'Магазин японского чая «Сакура·Чай»',
+    'Ассортимент и цены': items.map(i => `${i.n} — ${i.p} ₽ (${i.d})`).join('; '),
+    'В корзине': cart.length ? cart.map(i => i.n).join(', ') : 'пусто',
+    'Сумма корзины': cart.reduce((a, x) => a + x.p, 0) + ' ₽',
+    'Доставка': '2–4 дня по России, бесплатно от 3000 ₽, иначе 290 ₽',
+  });
+</script>
+{% if assistant %}
+<script src="{{ server_url }}/static/widget.js" data-server="{{ server_url }}" data-assistant-id="{{ assistant.id }}"></script>
+{% endif %}
+</body>
+</html>

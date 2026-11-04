@@ -374,6 +374,83 @@ document.addEventListener('DOMContentLoaded', () => {
         window.addEventListener('mouseup', stopPatting);
     }
 
+    // --- УПРАВЛЕНИЕ СИСТЕМНЫМ ПРОМПТОМ И МОДЕЛЬЮ ---
+    const assistantModelSelect = document.getElementById('assistant-model-select');
+    const assistantModelName = document.getElementById('assistant-model-name');
+    const systemPromptTextarea = document.getElementById('system-prompt-textarea');
+    const loadDefaultPromptBtn = document.getElementById('load-default-prompt-btn');
+    const insertCommandsBtn = document.getElementById('insert-commands-btn');
+
+    if (assistantModelSelect && assistantModelName) {
+        assistantModelSelect.addEventListener('change', () => {
+            if (assistantModelSelect.value !== 'custom') {
+                assistantModelName.value = assistantModelSelect.value;
+            }
+        });
+        assistantModelName.addEventListener('input', () => {
+            let matched = false;
+            for (let opt of assistantModelSelect.options) {
+                if (opt.value === assistantModelName.value) {
+                    assistantModelSelect.value = opt.value;
+                    matched = true;
+                    break;
+                }
+            }
+            if (!matched && assistantModelName.value) {
+                assistantModelSelect.value = 'custom';
+            }
+        });
+    }
+
+    if (loadDefaultPromptBtn && systemPromptTextarea) {
+        loadDefaultPromptBtn.addEventListener('click', async () => {
+            if (systemPromptTextarea.value.trim() && !confirm('Заменить текущий промпт на промпт из system_prompt.txt?')) {
+                return;
+            }
+            try {
+                loadDefaultPromptBtn.textContent = '⏳...';
+                const resp = await fetch('/assistant/default_prompt');
+                const data = await resp.json();
+                if (data.prompt) {
+                    systemPromptTextarea.value = data.prompt;
+                    loadDefaultPromptBtn.textContent = '✓ Загружено!';
+                    setTimeout(() => { loadDefaultPromptBtn.textContent = '📄 Из файла'; }, 2000);
+                }
+            } catch (err) {
+                console.error('Ошибка загрузки промпта:', err);
+                alert('Не удалось загрузить system_prompt.txt');
+                loadDefaultPromptBtn.textContent = '📄 Из файла';
+            }
+        });
+    }
+
+    if (insertCommandsBtn && systemPromptTextarea) {
+        insertCommandsBtn.addEventListener('click', () => {
+            const commandsBlock = '\n\n[Управление движениями Live2D]\n' +
+'Ты можешь оживлять свои слова движениями, добавляя команды в специальных скобках 【Команда】:\n' +
+'【Киваю головой】 — соглашаешься, одобряешь, говоришь «да»\n' +
+'【Махаю головой】 — покачать головой, отрицаешь, говоришь «нет»\n' +
+'【Посмотреть влево】 — отвести взгляд влево\n' +
+'【Посмотреть вправо】 — отвести взгляд вправо\n' +
+'【Посмотреть вверх】 — посмотреть наверх\n' +
+'【Посмотреть вниз】 — опустить взгляд\n' +
+'【Слежу за курсором】 — следить взглядом за курсором мыши\n' +
+'【Голова влево】 — наклонить голову влево\n' +
+'【Голова вправо】 — наклонить голову вправо\n' +
+'【Закрыть левый глаз】 — подмигнуть левым глазом\n' +
+'【Закрыть правый глаз】 — подмигнуть правым глазом\n\n' +
+'Используй команды органично по смыслу. Текст команд внутри скобок 【】 не озвучивается.';
+
+            if (systemPromptTextarea.value.includes('【Киваю головой】')) {
+                alert('Команды Live2D уже присутствуют в вашем промпте!');
+                return;
+            }
+            systemPromptTextarea.value += commandsBlock;
+            insertCommandsBtn.textContent = '✓ Добавлено!';
+            setTimeout(() => { insertCommandsBtn.textContent = '✨ Вставить команды 【】'; }, 2000);
+        });
+    }
+
     // Общая логика сайдбара
     if (menuToggleBtn && sidebar) { menuToggleBtn.addEventListener('click', () => { sidebar.classList.add('open'); }); }
     if (closeSidebarButton && sidebar) { closeSidebarButton.addEventListener('click', () => { sidebar.classList.remove('open'); }); }

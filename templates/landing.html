@@ -1,0 +1,296 @@
+{% from 'dashboard/_icons.html' import icon %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live2D Assistant — живой ассистент для вашего сайта</title>
+    <meta name="description" content="Аниме-персонаж с голосом и характером отвечает клиентам на сайте и передаёт диалог оператору. Подключение тремя строками кода.">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%236E56F8'/><stop offset='1' stop-color='%23FF6FAE'/></linearGradient></defs><rect width='32' height='32' rx='10' fill='url(%23g)'/><path d='M9 21c3 3 11 3 14 0' stroke='white' stroke-width='3' fill='none' stroke-linecap='round'/><circle cx='12' cy='13' r='2.2' fill='white'/><circle cx='20' cy='13' r='2.2' fill='white'/></svg>">
+    <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='landing.css') }}">
+    <script>var SHOWCASE = {{ {'model': showcase.live2d_model_path if showcase else '', 'name': showcase.name if showcase else 'Лила', 'scale': showcase.scale if showcase else 2.4, 'photo': url_for('static', filename=(showcase or others[0]).photo_url) if (showcase or others) else ''}|tojson }};</script>
+</head>
+<body class="landing">
+
+<header class="l-nav" id="top">
+    <div class="wrap l-nav-in">
+        <a class="brand" href="#top"><span class="brand-mark">{{ icon('sparkles', 18) }}</span><span class="brand-name">Live2D Assistant</span></a>
+        <nav class="l-links" aria-label="Разделы">
+            <a href="#how">Как подключить</a>
+            <a href="#avatars">Персонажи</a>
+            <a href="#features">Возможности</a>
+            <a href="#pricing">Тарифы</a>
+        </nav>
+        <div class="l-nav-cta">
+            {% if is_admin %}
+            <a class="btn btn-primary" href="{{ url_for('dash_assistants') }}">Открыть кабинет</a>
+            {% else %}
+            <button class="btn btn-ghost" data-open="login-modal">Войти</button>
+            <button class="btn btn-candy" data-open="login-modal">Попробовать бесплатно</button>
+            {% endif %}
+        </div>
+    </div>
+</header>
+
+<main>
+    <!-- ===================== HERO ===================== -->
+    <section class="hero">
+        <div class="wrap hero-in">
+            <div class="hero-copy">
+                <h1 class="hero-title">Живой ассистент для&nbsp;вашего сайта</h1>
+                <p class="hero-lead">Аниме-персонаж с голосом и характером отвечает клиентам, понимает, что у них на экране, и зовёт оператора, когда нужен человек. Подключается тремя строками кода.</p>
+                <div class="hero-cta">
+                    <button class="btn btn-candy btn-lg" data-open="login-modal">Создать ассистента</button>
+                    <a class="btn btn-ghost btn-lg" href="#how">Как это работает</a>
+                </div>
+                <ul class="hero-facts">
+                    <li>{{ icon('mic', 18) }} Говорит голосом и слышит</li>
+                    <li>{{ icon('headset', 18) }} Передаёт диалог оператору</li>
+                    <li>{{ icon('globe', 18) }} Работает на любом сайте</li>
+                    <li>{{ icon('palette', 18) }} Нарисуем персонажа под ваш бренд</li>
+                </ul>
+            </div>
+
+            <div class="hero-demo" aria-label="Пример виджета на сайте магазина">
+                <div class="browser">
+                    <div class="browser-bar"><i></i><i></i><i></i><span>sakura-tea.ru/catalog/matcha</span></div>
+                    <div class="browser-body">
+                        <div class="fake-site">
+                            <div class="fs-head"><b>Сакура·Чай</b><span></span><span></span><span></span></div>
+                            <div class="fs-product">
+                                <div class="fs-photo"><div class="cup"></div></div>
+                                <div class="fs-info">
+                                    <div class="fs-line w60"></div><div class="fs-line w40"></div>
+                                    <div class="fs-price">1 290 ₽</div>
+                                    <div class="fs-btn">В корзину</div>
+                                    <div class="fs-line w80 thin"></div><div class="fs-line w70 thin"></div><div class="fs-line w50 thin"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="w-panel">
+                            <div class="w-stage" id="hero-stage"><canvas id="hero-canvas"></canvas></div>
+                            <div class="w-box">
+                                <div class="w-name"><span class="dot" style="color:#1FAF8B"></span><b id="hero-speaker">{{ showcase.name if showcase else 'Лила' }}</b><span class="w-tag" id="hero-tag">ассистент</span></div>
+                                <div class="w-log" id="hero-log"></div>
+                                <div class="w-input"><span id="hero-typing">Напишите сообщение…</span><i>➤</i></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================== КАК ПОДКЛЮЧИТЬ ===================== -->
+    <section class="l-sec" id="how">
+        <div class="wrap how">
+            <div>
+                <h2 class="l-h2">Три шага от идеи до персонажа на сайте</h2>
+                <ol class="l-steps">
+                    <li><b>Придумайте характер</b><span>Опишите, кем будет ассистент, как он разговаривает и что знает о компании.</span></li>
+                    <li><b>Выберите внешность и голос</b><span>Live2D-модель, GIF или аккуратный чат без персонажа. Голос синтезируется на вашем сервере.</span></li>
+                    <li><b>Вставьте код</b><span>Один тег перед <code>&lt;/body&gt;</code>. Всё остальное настраивается в кабинете без программиста.</span></li>
+                </ol>
+            </div>
+            <div class="how-code">
+                <div class="codebox big"><pre><span class="tok-com">&lt;!-- Ассистент «Лила» --&gt;</span>
+&lt;<span class="tok-tag">script</span> <span class="tok-attr">src</span>=<span class="tok-str">"https://ваш-сервер/static/widget.js"</span>
+        <span class="tok-attr">data-server</span>=<span class="tok-str">"https://ваш-сервер"</span>
+        <span class="tok-attr">data-assistant-id</span>=<span class="tok-str">"1"</span>&gt;&lt;/<span class="tok-tag">script</span>&gt;</pre></div>
+                <div class="codebox big ctx"><pre><span class="tok-com">// Необязательно: что сейчас видит посетитель</span>
+<span class="tok-kw">window</span>.__ASSISTANT_CONTEXT__ = () => ({
+  <span class="tok-str">'Страница'</span>: <span class="tok-str">'Корзина'</span>,
+  <span class="tok-str">'Сумма заказа'</span>: <span class="tok-str">'2 580 ₽'</span>
+});</pre></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================== ПЕРСОНАЖИ ===================== -->
+    <section class="l-sec soft" id="avatars">
+        <div class="wrap">
+            <h2 class="l-h2 center">Каким будет ваш ассистент</h2>
+            <p class="l-sub center">Один движок — разные лица. Характер, память и голос не зависят от внешности, её можно поменять в любой момент.</p>
+            <div class="av-grid">
+                <article class="av-card main">
+                    <div class="av-ill live2d">
+                        {% if showcase %}<img class="av-photo" src="{{ url_for('static', filename=showcase.photo_url) }}" alt="{{ showcase.name }}"><span class="av-name">{{ showcase.name }}</span>{% endif %}
+                    </div>
+                    <h3>Live2D</h3>
+                    <p>Персонаж моргает, следит за курсором, кивает и наклоняет голову по смыслу ответа. Губы двигаются в такт голосу.</p>
+                </article>
+                <article class="av-card main">
+                    <div class="av-ill gif">
+                        {% if gif_showcase %}
+                            <img class="av-gif" src="{{ gif_showcase.gif_source_url or gif_showcase.gif_talk_url }}" alt="{{ gif_showcase.name }}">
+                        {% elif others %}
+                            <div class="av-pair">
+                                <figure><img src="{{ url_for('static', filename=others[0].photo_url) }}" alt=""><figcaption>молчит</figcaption></figure>
+                                <figure class="talk"><img src="{{ url_for('static', filename=others[0].photo_url) }}" alt=""><figcaption>говорит</figcaption></figure>
+                            </div>
+                        {% endif %}
+                    </div>
+                    <h3>GIF / PNG-тубер</h3>
+                    <p>Загрузите GIF — тишина это первый кадр, максимальная громкость последний. Или две PNG: «молчит» и «говорит».</p>
+                </article>
+                <article class="av-card main">
+                    <div class="av-ill text"><div class="bubbles"><span>Где мой заказ?</span><span>Уже в пути! Привезём завтра до 18:00.</span><span>Спасибо!</span></div></div>
+                    <h3>Чат-бот</h3>
+                    <p>Классическое окно чата с голосом, оператором и аналитикой — для сайтов, где персонаж не нужен.</p>
+                </article>
+                <div class="av-soon">
+                    <div>{{ icon('cube', 20) }}<b>VRM со скелетом и мимикой</b></div>
+                    <div>{{ icon('video', 20) }}<b>Видео-аватар по фото</b></div>
+                    <div>{{ icon('mic', 20) }}<b>Голосовой агент для звонков</b></div>
+                    <span class="badge butter">В разработке</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================== ПЕРСОНАЖ ПОД КЛЮЧ ===================== -->
+    <section class="l-sec studio-sec">
+        <div class="wrap studio-in">
+            <div class="studio-art">
+                {% for a in ([showcase] if showcase else []) + others[:2] %}
+                <img src="{{ url_for('static', filename=a.photo_url) }}" alt="{{ a.name }}" class="sa-{{ loop.index }}">
+                {% endfor %}
+            </div>
+            <div>
+                <h2 class="l-h2">Нет своего персонажа? Нарисуем</h2>
+                <p class="l-sub">Наша студия создаст ассистента под ваш бренд с нуля: придумаем образ, нарисуем и анимируем Live2D-модель, подберём голос и пропишем характер. Вы получаете готового персонажа, который уже знает ваши товары и правила.</p>
+                <ul class="studio-list">
+                    <li>{{ icon('palette', 18) }} Концепт и рисовка в стиле вашего бренда</li>
+                    <li>{{ icon('live2d', 18) }} Риггинг Live2D: мимика, моргание, движения головы</li>
+                    <li>{{ icon('mic', 18) }} Голос и характер, обучение на вашей базе знаний</li>
+                    <li>{{ icon('code', 18) }} Установка на сайт и настройка оператора</li>
+                </ul>
+                <button class="btn btn-candy btn-lg" data-open="login-modal" style="margin-top:24px">Обсудить своего персонажа</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================== ВОЗМОЖНОСТИ ===================== -->
+    <section class="l-sec" id="features">
+        <div class="wrap">
+            <h2 class="l-h2">Не просто милый, а полезный</h2>
+            <div class="bento">
+                <article class="b-card b-operator">
+                    <h3>Оператор подключается в один клик</h3>
+                    <p>Клиент пишет «позовите человека» — диалог загорается в кабинете. Вы отвечаете в том же окне, а ассистент молча учится на ваших ответах.</p>
+                    <div class="mini-inbox">
+                        <div class="mi-row hot"><span class="mi-av">П</span><div><b>Посетитель #B9F4</b><span>Хочу поменять адрес доставки</span></div><em>Ждёт</em></div>
+                        <div class="mi-row"><span class="mi-av v">Д</span><div><b>Посетитель #C97D</b><span>Спасибо, всё понятно!</span></div></div>
+                        <div class="mi-row"><span class="mi-av m">К</span><div><b>Посетитель #B484</b><span>А есть подарочная упаковка?</span></div></div>
+                    </div>
+                </article>
+                <article class="b-card b-context">
+                    <div>
+                    <h3>Видит то же, что и клиент</h3>
+                    <p>Сайт передаёт ассистенту состояние страницы. В нашем демо он тренирует в шашках: движок считает варианты, а персонаж объясняет их человеческим языком.</p>
+                    </div>
+                    <div class="mini-board" aria-hidden="true">{% for i in range(36) %}<i class="{{ 'd' if (i // 6 + i) % 2 else '' }} {{ 'w' if i in [25,27,29,30,32] else 'b' if i in [1,3,5,6,8,14] else '' }} {{ 'hint' if i == 20 else '' }}"></i>{% endfor %}</div>
+                </article>
+                <article class="b-card b-voice">
+                    <h3>Говорит и слушает</h3>
+                    <p>Синтез речи и распознавание голоса работают на вашем сервере — без передачи записей третьим лицам.</p>
+                    <div class="wave" aria-hidden="true">{% for i in range(28) %}<i style="--h:{{ [20,45,70,35,90,60,30,75,50,95,40,65,25,80,55,35,85,45,70,30,60,90,40,55,75,35,50,25][i] }}%;--d:{{ i * 0.05 }}s"></i>{% endfor %}</div>
+                </article>
+                <article class="b-card b-stats">
+                    <div>
+                    <h3>Понятная аналитика</h3>
+                    <p>Сколько вопросов закрыл ассистент, когда пик обращений и где клиентам нужен человек.</p>
+                    </div>
+                    <div class="mini-chart" aria-hidden="true"><svg viewBox="0 0 200 70" preserveAspectRatio="none"><path d="M0 60 C20 50 30 52 45 40 S70 30 85 34 110 18 130 22 160 8 200 12 L200 70 L0 70Z" fill="rgba(110,86,248,.15)"/><path d="M0 60 C20 50 30 52 45 40 S70 30 85 34 110 18 130 22 160 8 200 12" fill="none" stroke="#6E56F8" stroke-width="3"/></svg><b>94%</b><span>ответов без оператора</span></div>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================== ГДЕ ПРИГОДИТСЯ ===================== -->
+    <section class="l-sec uses">
+        <div class="wrap uses-in">
+            <h2 class="l-h2">Где пригодится</h2>
+            <div class="use-list">
+                <div><b>Интернет-магазины</b><span>подбор товара, доставка, статус заказа</span></div>
+                <div><b>Онлайн-школы</b><span>помощник ученика и куратор курса</span></div>
+                <div><b>Игры и развлечения</b><span>тренер, гид по миру, ведущий</span></div>
+                <div><b>Сервисы и банки</b><span>первая линия поддержки без очереди</span></div>
+                <div><b>Музеи и выставки</b><span>экскурсовод на сайте и в киоске</span></div>
+                <div><b>Городские порталы</b><span>подскажет, какую справку взять</span></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================== ТАРИФЫ ===================== -->
+    <section class="l-sec soft" id="pricing">
+        <div class="wrap">
+            <h2 class="l-h2 center">Тарифы</h2>
+            <p class="l-sub center">На время MVP все возможности открыты бесплатно.</p>
+            <div class="plans l-plans">
+                {% for p in [
+                    ('Старт', '0 ₽', '1 ассистент, 500 ответов в месяц, GIF и чат-бот', False),
+                    ('Про', '2 900 ₽', '3 ассистента, Live2D и голос, живой оператор', False),
+                    ('Бизнес', '9 900 ₽', '10 ассистентов, аналитика, контекст страницы и JS API', True),
+                    ('Корпорация', 'от 49 000 ₽', 'Установка на ваш сервер и персонаж под ключ', False),
+                ] %}
+                <div class="plan {% if p[3] %}current{% endif %}">
+                    {% if p[3] %}<span class="badge pink">Популярный</span>{% endif %}
+                    <div class="p-name">{{ p[0] }}</div>
+                    <div class="p-price">{{ p[1] }} <small>/ мес</small></div>
+                    <p class="small muted">{{ p[2] }}</p>
+                    <button class="btn {% if p[3] %}btn-primary{% else %}btn-ghost{% endif %}" data-open="login-modal">Начать</button>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <!-- ===================== CTA ===================== -->
+    <section class="final">
+        <div class="wrap final-in">
+            <h2>Поселите персонажа на своём сайте сегодня</h2>
+            <p>Создайте ассистента, настройте характер и проверьте его в студии — займёт минут десять.</p>
+            <button class="btn btn-candy btn-lg" data-open="login-modal">Войти в кабинет</button>
+        </div>
+    </section>
+</main>
+
+<footer class="l-foot">
+    <div class="wrap l-foot-in">
+        <span class="brand"><span class="brand-mark">{{ icon('sparkles', 16) }}</span><span class="brand-name">Live2D Assistant</span></span>
+        <span class="faint small">MVP · {{ assistants_count }} ассистент{{ 'а' if 2 <= assistants_count % 10 <= 4 and not 12 <= assistants_count % 100 <= 14 else '' if assistants_count % 10 == 1 and assistants_count % 100 != 11 else 'ов' }} в системе</span>
+        <nav><a href="#how">Подключение</a><a href="#features">Возможности</a><a href="#pricing">Тарифы</a></nav>
+    </div>
+</footer>
+
+<!-- ===================== ВХОД ===================== -->
+<div class="modal-backdrop" id="login-modal">
+    <div class="modal login" role="dialog" aria-labelledby="login-title">
+        <button class="btn btn-icon modal-close" data-close aria-label="Закрыть">{{ icon('x') }}</button>
+        <div class="login-mark"><span class="brand-mark">{{ icon('sparkles', 22) }}</span></div>
+        <h2 id="login-title">Вход в кабинет</h2>
+        <div class="login-dev">
+            <span class="badge butter">{{ icon('clock', 14) }} В разработке</span>
+            <p>Регистрация и вход по почте появятся в следующей версии. Пока кабинет открыт в режиме администратора.</p>
+        </div>
+        <div class="login-fields" aria-hidden="true">
+            <input class="input" placeholder="Почта" disabled>
+            <input class="input" placeholder="Пароль" type="password" disabled>
+        </div>
+        <form method="POST" action="{{ url_for('login_admin') }}">
+            <button class="btn btn-candy btn-lg" type="submit" style="width:100%">{{ icon('shield', 18) }} Войти как администратор</button>
+        </form>
+    </div>
+</div>
+
+<div class="toasts" id="toasts"></div>
+<script src="{{ url_for('static', filename='dashboard.js') }}"></script>
+<script src="{{ url_for('static', filename='libs/live2dcubismcore.min.js') }}"></script>
+<script src="{{ url_for('static', filename='libs/pixi.min.js') }}"></script>
+<script src="{{ url_for('static', filename='libs/cubism4.min.js') }}"></script>
+<script src="{{ url_for('static', filename='landing.js') }}"></script>
+{% if request.args.get('login') %}<script>Dash.openModal('login-modal');</script>{% endif %}
+</body>
+</html>
