@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Кабинет компании — Live2D & 3D Assistant</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%236E56F8'/><stop offset='1' stop-color='%23FF6FAE'/></linearGradient></defs><rect width='32' height='32' rx='10' fill='url(%23g)'/><path d='M9 21c3 3 11 3 14 0' stroke='white' stroke-width='3' fill='none' stroke-linecap='round'/><circle cx='12' cy='13' r='2.2' fill='white'/><circle cx='20' cy='13' r='2.2' fill='white'/></svg>">
+    <link rel="stylesheet" href="./static/app.css">
+    
+    <style>
+        .dash-sub { display: none; }
+        .dash-sub.active { display: block; }
+        .toasts { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 10px 22px; border-radius: 20px; font-size: 14px; font-weight: 500; z-index: 9999; display: none; box-shadow: 0 10px 30px rgba(0,0,0,.3); }
+        .stage-prev-box { height: 260px; background: radial-gradient(circle, #f3effe 0%, #ebe4ff 100%); border-radius: 16px; margin: 12px 0; display: grid; place-items: center; font-size: 72px; position: relative; overflow: hidden; }
+    </style>
+</head>
+<body data-page="assistants">
+
+<div class="shell">
+    <!-- БОКОВОЕ МЕНЮ (САЙДБАР) -->
+    <aside class="sidebar">
+        <a class="brand" href="./index.html">
+            <span class="brand-mark"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8Z"/></svg></span>
+            <span class="brand-name">Live2D Assistant<small>Кабинет компании</small></span>
+        </a>
+
+        <nav class="nav" aria-label="Разделы">
+            <a href="#assistants" class="dash-tab-link active" data-tab="assistants">
+                <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="8" width="16" height="12" rx="3"/><path d="M2 14h2M20 14h2M9 13v2M15 13v2"/></svg>
+                <span>Ассистенты</span>
+            </a>
+            <a href="#dialogs" class="dash-tab-link" data-tab="dialogs">
+                <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12a8 8 0 0 1-11.8 7L4 20.5l1.5-4.6A8 8 0 1 1 21 12Z"/></svg>
+                <span>Диалоги</span>
+                <span class="count" style="background:var(--pink);color:#fff;border-radius:10px;padding:1px 6px;font-size:11px;margin-left:auto">1</span>
+            </a>
+            <a href="#analytics" class="dash-tab-link" data-tab="analytics">
+                <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>
+                <span>Аналитика</span>
+            </a>
+            <a href="#docs" class="dash-tab-link" data-tab="docs">
+                <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 4h7a3 3 0 0 1 3 3v13a2 2 0 0 0-2-2H2Z"/><path d="M22 4h-7a3 3 0 0 0-3 3v13a2 2 0 0 1 2-2h8Z"/></svg>
+                <span>Документация</span>
+            </a>
+
+            <div class="nav-group-title" style="margin-top:16px">Компания</div>
+            <a href="#settings" class="dash-tab-link" data-tab="settings">
+                <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                <span>Настройки</span>
+            </a>
+
+            <div class="nav-group-title" style="margin-top:16px">Интерактив и Тесты</div>
+            <a href="./studio.html">
+                <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                <span>▶️ Студия</span>
+            </a>
+            <a href="./test_site.html" target="_blank">
+                <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/></svg>
+                <span>🌸 Тестовый сайт Hanami</span>
+            </a>
+            <a href="./demo.html" target="_blank">
+                <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>
+                <span>🍵 Магазин «Сакура·Чай»</span>
+            </a>
+            <a href="./checkers.html">
+                <svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+                <span>♟️ Шашки с тренером</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-foot" style="margin-top:auto">
+            <div class="account-chip">
+                <span class="avatar" style="background:var(--violet);color:#fff;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-weight:700">А</span>
+                <span class="who"><b>Администратор</b><span>Компания</span></span>
+            </div>
+            <a class="btn btn-ghost btn-sm" href="./index.html" style="margin-top:8px;width:100%">Выйти на лендинг</a>
+        </div>
+    </aside>
+
+    <!-- ОСНОВНАЯ ЗОНА -->
+    <main class="main" style="padding:28px 36px">
+
+        <!-- 1. ВКЛАДКА: АССИСТЕНТЫ -->
+        <div id="tab-assistants" class="dash-sub active">
+            <div class="page-head" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:28px">
+                <div>
+                    <h1>Ассистенты</h1>
+                    <p class="muted">Персонажи, которые отвечают посетителям ваших сайтов.</p>
+                </div>
+                <div class="page-actions" style="display:flex;gap:10px">
+                    <button class="btn btn-ghost" onclick="switchTab('docs')">Как встроить</button>
+                    <button class="btn btn-primary" onclick="showToast('Создание персонажа доступно в редакторе!')">+ Создать ассистента</button>
+                </div>
+            </div>
+
+            <div class="assistant-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:24px">
+                <!-- Карточка 1: 3D Аюми -->
+                <article class="a-card" style="background:#fff;border-radius:20px;border:1px solid var(--line);overflow:hidden;box-shadow:var(--shadow-soft)">
+                    <div class="a-stage" style="height:190px;background:#f3effe;position:relative;display:grid;place-items:center">
+                        <span class="badge butter" style="position:absolute;top:12px;left:12px;background:#FFF3D6;color:#D97706;padding:3px 8px;border-radius:8px;font-size:12px;font-weight:600">👑 3D · Риг</span>
+                        <span class="badge mint" style="position:absolute;top:12px;right:12px;background:#DDF6EE;color:#1FAF8B;padding:3px 8px;border-radius:8px;font-size:12px;font-weight:600">● Активен</span>
+                        <div style="font-size:54px">💃</div>
+                    </div>
+                    <div class="a-body" style="padding:18px">
+                        <h3>Аюми</h3>
+                        <p class="muted small" style="margin:6px 0 14px">3D-персонаж с кинематикой, дыханием и поворотом к курсору.</p>
+                        <div style="display:flex;gap:14px;font-size:12px;color:var(--ink-2);border-top:1px solid var(--line);padding-top:12px">
+                            <div><b>412</b> диалогов</div>
+                            <div><b>1.9к</b> сообщений</div>
+                            <div><b>#1</b> ID</div>
+                        </div>
+                    </div>
+                    <div class="a-foot" style="padding:12px 18px;background:#faf9fd;border-top:1px solid var(--line);display:flex;gap:8px">
+                        <button class="btn btn-soft btn-sm" onclick="openEditor('Аюми (3D)', '💃')">Настроить</button>
+                        <a class="btn btn-ghost btn-sm" href="./studio.html">Тест</a>
+                        <a class="btn btn-ghost btn-sm" href="./test_site.html" target="_blank">Сайт</a>
+                    </div>
+                </article>
+
+                <!-- Карточка 2: Live2D Цубаса -->
+                <article class="a-card" style="background:#fff;border-radius:20px;border:1px solid var(--line);overflow:hidden;box-shadow:var(--shadow-soft)">
+                    <div class="a-stage" style="height:190px;background:#fff0f6;position:relative;display:grid;place-items:center">
+                        <span class="badge" style="position:absolute;top:12px;left:12px;background:#FFE6F1;color:#FF6FAE;padding:3px 8px;border-radius:8px;font-size:12px;font-weight:600">🎀 Live2D</span>
+                        <span class="badge mint" style="position:absolute;top:12px;right:12px;background:#DDF6EE;color:#1FAF8B;padding:3px 8px;border-radius:8px;font-size:12px;font-weight:600">● Активен</span>
+                        <div style="font-size:54px">🌸</div>
+                    </div>
+                    <div class="a-body" style="padding:18px">
+                        <h3>Цубаса</h3>
+                        <p class="muted small" style="margin:6px 0 14px">Консультант магазина японского чая с эмоциями и морганием.</p>
+                        <div style="display:flex;gap:14px;font-size:12px;color:var(--ink-2);border-top:1px solid var(--line);padding-top:12px">
+                            <div><b>836</b> диалогов</div>
+                            <div><b>4.2к</b> сообщений</div>
+                            <div><b>#2</b> ID</div>
+                        </div>
+                    </div>
+                    <div class="a-foot" style="padding:12px 18px;background:#faf9fd;border-top:1px solid var(--line);display:flex;gap:8px">
+                        <button class="btn btn-soft btn-sm" onclick="openEditor('Цубаса (Live2D)', '🌸')">Настроить</button>
+                        <a class="btn btn-ghost btn-sm" href="./studio.html">Тест</a>
+                        <a class="btn btn-ghost btn-sm" href="./demo.html" target="_blank">Сайт</a>
+                    </div>
+                </article>
+
+                <!-- Карточка 3: Котёнок -->
+                <article class="a-card" style="background:#fff;border-radius:20px;border:1px solid var(--line);overflow:hidden;box-shadow:var(--shadow-soft)">
+                    <div class="a-stage" style="height:190px;background:#fefbf3;position:relative;display:grid;place-items:center">
+                        <span class="badge" style="position:absolute;top:12px;left:12px;background:#FFF3D6;color:#D97706;padding:3px 8px;border-radius:8px;font-size:12px;font-weight:600">🐱 Live2D</span>
+                        <span class="badge mint" style="position:absolute;top:12px;right:12px;background:#DDF6EE;color:#1FAF8B;padding:3px 8px;border-radius:8px;font-size:12px;font-weight:600">● Активен</span>
+                        <div style="font-size:54px">🐱</div>
+                    </div>
+                    <div class="a-body" style="padding:18px">
+                        <h3>Котёнок</h3>
+                        <p class="muted small" style="margin:6px 0 14px">Плюшевый котик-консультант с мягкими движениями и ушками.</p>
+                        <div style="display:flex;gap:14px;font-size:12px;color:var(--ink-2);border-top:1px solid var(--line);padding-top:12px">
+                            <div><b>184</b> диалога</div>
+                            <div><b>640</b> сообщений</div>
+                            <div><b>#3</b> ID</div>
+                        </div>
+                    </div>
+                    <div class="a-foot" style="padding:12px 18px;background:#faf9fd;border-top:1px solid var(--line);display:flex;gap:8px">
+                        <button class="btn btn-soft btn-sm" onclick="openEditor('Котёнок (Live2D)', '🐱')">Настроить</button>
+                        <a class="btn btn-ghost btn-sm" href="./studio.html">Тест</a>
+                        <a class="btn btn-ghost btn-sm" href="./test_site.html" target="_blank">Сайт</a>
+                    </div>
+                </article>
+            </div>
+        </div>
+
+        <!-- 2. ВКЛАДКА: РЕДАКТОР АССИСТЕНТА -->
+        <div id="tab-editor" class="dash-sub">
+            <div class="page-head" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+                <div>
+                    <a href="#assistants" onclick="switchTab('assistants')" class="small">← Назад ко всем ассистентам</a>
+                    <h1 style="margin-top:6px" id="editor-char-title">Редактор: Аюми</h1>
+                </div>
+                <div class="page-actions" style="display:flex;gap:10px">
+                    <a class="btn btn-ghost" href="./studio.html">Поговорить в студии</a>
+                    <button class="btn btn-primary" onclick="showToast('✅ Настройки персонажа сохранены!')">💾 Сохранить (Ctrl+S)</button>
+                </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:360px 1fr;gap:24px">
+                <!-- Превью -->
+                <div style="background:#fff;border-radius:20px;border:1px solid var(--line);padding:20px;box-shadow:var(--shadow-soft)">
+                    <h3>Живое превью</h3>
+                    <div class="stage-prev-box">
+                        <span id="editor-avatar-symbol">💃</span>
+                    </div>
+                    <div class="field">
+                        <label>Масштаб отображения</label>
+                        <input type="range" min="1" max="4" step="0.1" value="2.4" oninput="document.getElementById('editor-avatar-symbol').style.transform = `scale(${this.value/2.4})`">
+                    </div>
+                    <div class="field">
+                        <label>Проверить озвучку (Web Speech API)</label>
+                        <div style="display:flex;gap:8px">
+                            <input type="text" id="editor-tts-input" class="input" value="Здравствуйте! Чем я могу помочь?" style="flex:1">
+                            <button class="btn btn-soft btn-sm" onclick="speakText(document.getElementById('editor-tts-input').value)">▶ Озвучить</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Настройки -->
+                <div style="background:#fff;border-radius:20px;border:1px solid var(--line);padding:24px;box-shadow:var(--shadow-soft)">
+                    <div class="field">
+                        <label>Имя персонажа</label>
+                        <input type="text" class="input" id="editor-name-input" value="Аюми">
+                    </div>
+                    <div class="field">
+                        <label>Характер и системный промпт для нейросети</label>
+                        <textarea class="textarea" rows="6" style="width:100%;border-radius:12px;border:1px solid var(--line);padding:12px;font-size:13.5px">Тебя зовут Аюми. Ты вежливый и внимательный ассистент интернет-магазина.
+Отвечай кратко, емко и по существу (1-2 предложения).
+Используй команды 【Киваю головой】, 【Махаю головой】, чтобы оживлять свою модель.</textarea>
+                    </div>
+                    <div class="field">
+                        <label>Голос озвучки</label>
+                        <select class="select" style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--line)">
+                            <option>Ксения (kseniya) — естественный русский голос</option>
+                            <option>Ирина (irina) — спокойный консультант</option>
+                            <option>Александр (alexander) — мужской голос</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. ВКЛАДКА: ДИАЛОГИ (ОПЕРАТОРСКАЯ) -->
+        <div id="tab-dialogs" class="dash-sub">
+            <div class="page-head" style="margin-bottom:24px">
+                <h1>Диалоги клиентов</h1>
+                <p class="muted">Все разговоры с ваших сайтов в реальном времени. Если клиенту нужен человек — диалог поднимается наверх.</p>
+            </div>
+
+            <div style="display:grid;grid-template-columns:320px 1fr;gap:20px;background:#fff;border-radius:20px;border:1px solid var(--line);min-height:520px;overflow:hidden;box-shadow:var(--shadow-soft)">
+                <div style="border-right:1px solid var(--line);padding:14px">
+                    <div style="background:#FFE6F1;padding:12px;border-radius:14px;border:1px solid #FFB8D6;cursor:pointer">
+                        <div style="display:flex;justify-content:space-between;align-items:center">
+                            <b>Клиент #142</b>
+                            <span class="badge" style="background:#FF6FAE;color:#fff;font-size:11px;padding:2px 6px;border-radius:6px">Ждёт человека</span>
+                        </div>
+                        <p class="small muted" style="margin-top:6px">«Позовите оператора пожалуйста!»</p>
+                    </div>
+                    <div style="padding:12px;border-radius:14px;cursor:pointer;margin-top:8px">
+                        <b>Клиент #141</b>
+                        <p class="small muted" style="margin-top:4px">«Спасибо за помощь с выбором чая!»</p>
+                    </div>
+                </div>
+
+                <div style="display:flex;flex-direction:column;padding:20px">
+                    <div style="padding-bottom:12px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center">
+                        <div><b>Диалог с Клиентом #142</b><span class="muted small" style="margin-left:10px">Страница: sakura-tea.ru/catalog</span></div>
+                        <span class="badge" style="background:#DDF6EE;color:#1FAF8B;padding:4px 10px;border-radius:8px">● Вы подключены как оператор</span>
+                    </div>
+                    <div id="operator-chat-log" style="flex:1;overflow-y:auto;padding:16px 0;display:flex;flex-direction:column;gap:10px">
+                        <div style="align-self:flex-start;background:#f3effe;padding:8px 12px;border-radius:10px;font-size:13.5px">Клиент: Здравствуйте! Позовите оператора пожалуйста, хочу уточнить оптовую скидку.</div>
+                        <div style="align-self:flex-start;background:#fff0f6;padding:8px 12px;border-radius:10px;font-size:13.5px;color:var(--pink)">Ассистент: Конечно! Подключаю живого оператора — он ответит прямо здесь.</div>
+                    </div>
+                    <div style="display:flex;gap:10px;padding-top:12px;border-top:1px solid var(--line)">
+                        <input type="text" id="operator-input" class="input" placeholder="Ответить клиенту от имени оператора..." style="flex:1" onkeydown="if(event.key==='Enter')sendOperatorReply()">
+                        <button class="btn btn-primary" onclick="sendOperatorReply()">Отправить</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. ВКЛАДКА: АНАЛИТИКА -->
+        <div id="tab-analytics" class="dash-sub">
+            <div class="page-head" style="margin-bottom:24px">
+                <h1>Аналитика</h1>
+                <p class="muted">Эффективность работы ассистента за последние 30 дней.</p>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-bottom:28px">
+                <div style="background:#fff;padding:22px;border-radius:20px;border:1px solid var(--line);box-shadow:var(--shadow-soft)">
+                    <span class="muted small">Всего диалогов</span>
+                    <div style="font-size:34px;font-weight:700;margin-top:6px">1 248</div>
+                    <span style="color:#1FAF8B;font-size:12px;font-weight:600">↑ +18% за месяц</span>
+                </div>
+                <div style="background:#fff;padding:22px;border-radius:20px;border:1px solid var(--line);box-shadow:var(--shadow-soft)">
+                    <span class="muted small">Закрыто без оператора</span>
+                    <div style="font-size:34px;font-weight:700;margin-top:6px">84.2%</div>
+                    <span style="color:#1FAF8B;font-size:12px;font-weight:600">Экономия времени сотрудников</span>
+                </div>
+                <div style="background:#fff;padding:22px;border-radius:20px;border:1px solid var(--line);box-shadow:var(--shadow-soft)">
+                    <span class="muted small">Среднее время ответа</span>
+                    <div style="font-size:34px;font-weight:700;margin-top:6px">1.1 сек</div>
+                    <span class="muted font-size:12px">Мгновенный отклик</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. ВКЛАДКА: ДОКУМЕНТАЦИЯ -->
+        <div id="tab-docs" class="dash-sub">
+            <div class="page-head" style="margin-bottom:24px">
+                <h1>Документация по встраиванию</h1>
+                <p class="muted">Вставьте одну строчку на ваш сайт, чтобы ассистент появился у клиентов.</p>
+            </div>
+            <div style="background:#fff;padding:24px;border-radius:20px;border:1px solid var(--line);box-shadow:var(--shadow-soft)">
+                <h3>Код для вставки на сайт</h3>
+                <p class="small muted" style="margin:8px 0 14px">Добавьте перед закрывающим тегом <code>&lt;/body&gt;</code> на любой странице вашего сайта:</p>
+                <div class="codebox"><pre>&lt;script src="https://superdenloar.github.io/Live2DAssistant/static/widget.js"
+        data-server="https://superdenloar.github.io/Live2DAssistant"
+        data-assistant-id="1"&gt;&lt;/script&gt;</pre></div>
+                <button class="btn btn-soft btn-sm" style="margin-top:12px" onclick="showToast('📋 Код скопирован в буфер обмена!')">Скопировать код</button>
+            </div>
+        </div>
+
+        <!-- 6. ВКЛАДКА: НАСТРОЙКИ -->
+        <div id="tab-settings" class="dash-sub">
+            <div class="page-head" style="margin-bottom:24px">
+                <h1>Настройки системы</h1>
+                <p class="muted">Провайдер нейросети и глобальные параметры приложения.</p>
+            </div>
+            <div style="background:#fff;padding:24px;border-radius:20px;border:1px solid var(--line);max-width:600px;box-shadow:var(--shadow-soft)">
+                <div class="field">
+                    <label>Провайдер нейросети</label>
+                    <select class="select" style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--line)">
+                        <option>Elysium AI (Рекомендуется)</option>
+                        <option>LM Studio (Локальный сервер)</option>
+                        <option>OpenAI API</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label>API Ключ</label>
+                    <input type="password" class="input" placeholder="sk-..." value="sk-demo-live2d-key">
+                </div>
+                <button class="btn btn-primary" onclick="showToast('✅ Настройки сохранены!')">Сохранить</button>
+            </div>
+        </div>
+
+    </main>
+</div>
+
+<div class="toasts" id="toast-box"></div>
+
+<script>
+    // Навигация по вкладкам кабинета
+    function switchTab(tabId) {
+        document.querySelectorAll('.dash-sub').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.dash-tab-link').forEach(el => el.classList.remove('active'));
+        
+        const target = document.getElementById('tab-' + tabId);
+        if (target) target.classList.add('active');
+
+        const link = document.querySelector(`.dash-tab-link[data-tab="${tabId}"]`);
+        if (link) link.classList.add('active');
+        
+        location.hash = tabId;
+        window.scrollTo(0, 0);
+    }
+
+    document.querySelectorAll('.dash-tab-link').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const tab = btn.dataset.tab;
+            if (tab) {
+                e.preventDefault();
+                switchTab(tab);
+            }
+        });
+    });
+
+    // Хеш-навигация
+    window.addEventListener('load', () => {
+        const hash = location.hash.replace('#', '');
+        if (hash && document.getElementById('tab-' + hash)) {
+            switchTab(hash);
+        }
+    });
+
+    function showToast(msg) {
+        const t = document.getElementById('toast-box');
+        t.textContent = msg;
+        t.style.display = 'block';
+        setTimeout(() => t.style.display = 'none', 2400);
+    }
+
+    function openEditor(name, icon) {
+        document.getElementById('editor-char-title').textContent = 'Редактор: ' + name;
+        document.getElementById('editor-avatar-symbol').textContent = icon;
+        switchTab('editor');
+    }
+
+    function sendOperatorReply() {
+        const inp = document.getElementById('operator-input');
+        const val = inp.value.trim();
+        if (!val) return;
+        const log = document.getElementById('operator-chat-log');
+        const msg = document.createElement('div');
+        msg.style.cssText = 'align-self:flex-end;background:var(--violet);color:#fff;padding:8px 12px;border-radius:10px;font-size:13.5px';
+        msg.textContent = 'Оператор: ' + val;
+        log.appendChild(msg);
+        inp.value = '';
+        showToast('Отправлено клиенту на сайт!');
+    }
+
+    function speakText(text) {
+        if (!window.speechSynthesis) return;
+        window.speechSynthesis.cancel();
+        const ut = new SpeechSynthesisUtterance(text);
+        ut.lang = 'ru-RU';
+        window.speechSynthesis.speak(ut);
+    }
+</script>
+</body>
+</html>
