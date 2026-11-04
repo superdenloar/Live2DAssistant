@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Live2D & 3D AI Assistant — Web Showcase</title>
+    <meta name="description" content="Интерактивная веб-демонстрация 3D и Live2D ассистента прямо в браузере через GitHub Pages.">
+    <link rel="icon" href="./static/img/default_avatar.png" type="image/png">
+    
+    <!-- Шрифты -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Локальные библиотеки Live2D (Cubism Core, PixiJS, Cubism4) -->
+    <script src="./static/libs/live2dcubismcore.min.js"></script>
+    <script src="./static/libs/pixi.min.js"></script>
+    <script src="./static/libs/cubism4.min.js"></script>
+
+    <style>
+        :root {
+            --bg-dark: #0f111a;
+            --bg-card: rgba(22, 25, 38, 0.82);
+            --bg-card-hover: rgba(30, 35, 54, 0.9);
+            --border: rgba(255, 255, 255, 0.1);
+            --primary: #9d4edd;
+            --primary-glow: rgba(157, 78, 221, 0.35);
+            --accent: #ff70a6;
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --user-bubble: #7b2cbf;
+            --bot-bubble: #1f2438;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-main);
+            height: 100vh;
+            height: 100dvh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            background-image: 
+                radial-gradient(circle at 20% 20%, rgba(157, 78, 221, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 80% 80%, rgba(255, 112, 166, 0.12) 0%, transparent 45%);
+        }
+
+        /* --- ВЕРХНЯЯ ПАНЕЛЬ --- */
+        header {
+            height: 60px;
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+            background: rgba(15, 17, 26, 0.75);
+            backdrop-filter: blur(16px);
+            z-index: 50;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand-logo {
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            box-shadow: 0 4px 14px var(--primary-glow);
+        }
+
+        .brand-title {
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .badge-gh {
+            font-size: 10px;
+            padding: 2px 7px;
+            background: rgba(157, 78, 221, 0.2);
+            color: #d8b4fe;
+            border: 1px solid rgba(157, 78, 221, 0.35);
+            border-radius: 6px;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .top-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-top {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 7px 14px;
+            border-radius: 9px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+
+        .btn-top:hover {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.25);
+            transform: translateY(-1px);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), #7b2cbf);
+            border: none;
+            box-shadow: 0 2px 10px var(--primary-glow);
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #ae5fed, #8f3ad4);
+        }
+
+        /* --- ГЛАВНЫЙ МАКЕТ --- */
+        .workspace {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 420px;
+            height: calc(100vh - 60px);
+            height: calc(100dvh - 60px);
+            position: relative;
+        }
+
+        @media (max-width: 900px) {
+            .workspace {
+                grid-template-columns: 1fr;
+                grid-template-rows: 1fr 1fr;
+            }
+        }
+
+        /* --- ЛЕВАЯ ЗОНА: АВАТАР --- */
+        .stage-pane {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            background: radial-gradient(circle at center, rgba(255, 255, 255, 0.02) 0%, transparent 70%);
+        }
+
+        .model-selector-bar {
+            position: absolute;
+            top: 16px;
+            z-index: 20;
+            display: flex;
+            gap: 6px;
+            padding: 5px;
+            background: rgba(18, 20, 32, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+        }
+
+        .model-pill {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            padding: 7px 13px;
+            border-radius: 9px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .model-pill.active {
+            background: rgba(157, 78, 221, 0.25);
+            color: #fff;
+            box-shadow: 0 0 12px var(--primary-glow);
+            border: 1px solid rgba(157, 78, 221, 0.4);
+        }
+
+        .avatar-viewport {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            touch-action: none;
+        }
+
+        #live2d-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        #threejs-container {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            inset: 0;
+        }
+
+        .stage-info {
+            position: absolute;
+            bottom: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            background: rgba(15, 17, 26, 0.7);
+            backdrop-filter: blur(8px);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            font-size: 12px;
+            color: var(--text-muted);
+            pointer-events: none;
+            white-space: nowrap;
+        }
+
+        .pulse-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #10b981;
+            box-shadow: 0 0 8px #10b981;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.85); }
+        }
+
+        /* --- ПРАВАЯ ЗОНА: ЧАТ И ДЕМО --- */
+        .chat-pane {
+            border-left: 1px solid var(--border);
+            background: var(--bg-card);
+            backdrop-filter: blur(24px);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: -8px 0 24px rgba(0, 0, 0, 0.2);
+        }
+
+        .chat-header {
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .chat-title-wrap {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .chat-avatar-thumb {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+
+        .chat-title {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .chat-status {
+            font-size: 11px;
+            color: #10b981;
+        }
+
+        .sound-toggle-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+
+        .sound-toggle-btn.active {
+            background: rgba(157, 78, 221, 0.25);
+            border-color: var(--primary);
+            color: #d8b4fe;
+        }
+
+        /* Сообщения чата */
+        .messages-list {
+            flex: 1;
+            padding: 16px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .message {
+            max-width: 86%;
+            padding: 10px 14px;
+            border-radius: 14px;
+            font-size: 13.5px;
+            line-height: 1.45;
+            word-wrap: break-word;
+            animation: fadeIn 0.2s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.bot {
+            align-self: flex-start;
+            background: var(--bot-bubble);
+            border: 1px solid var(--border);
+            color: #e5e7eb;
+            border-bottom-left-radius: 3px;
+        }
+
+        .message.user {
+            align-self: flex-end;
+            background: var(--user-bubble);
+            color: #fff;
+            border-bottom-right-radius: 3px;
+            box-shadow: 0 4px 14px var(--primary-glow);
+        }
+
+        .message.system {
+            align-self: center;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            font-size: 11.5px;
+            color: var(--text-muted);
+            border-radius: 20px;
+            padding: 4px 12px;
+        }
+
+        /* Быстрые чипсы команд */
+        .quick-chips {
+            padding: 8px 14px;
+            display: flex;
+            gap: 6px;
+            overflow-x: auto;
+            white-space: nowrap;
+            scrollbar-width: none;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .quick-chips::-webkit-scrollbar {
+            display: none;
+        }
+
+        .chip {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            padding: 5px 11px;
+            border-radius: 16px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .chip:hover {
+            background: rgba(157, 78, 221, 0.2);
+            color: #fff;
+            border-color: rgba(157, 78, 221, 0.4);
+        }
+
+        /* Поле ввода */
+        .chat-input-bar {
+            padding: 12px 14px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 8px;
+            background: rgba(15, 17, 26, 0.8);
+        }
+
+        .chat-input {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px 14px;
+            color: var(--text-main);
+            font-size: 13.5px;
+            outline: none;
+            transition: border-color 0.2s ease;
+        }
+
+        .chat-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px var(--primary-glow);
+        }
+
+        .btn-send {
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 10px var(--primary-glow);
+        }
+
+        .btn-send:hover {
+            transform: scale(1.05);
+        }
+
+        /* Модальные окна */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(8px);
+            z-index: 100;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-card {
+            background: #171926;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            width: 100%;
+            max-width: 520px;
+            padding: 22px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .modal-title {
+            font-size: 17px;
+            font-weight: 700;
+        }
+
+        .btn-close-modal {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .field-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .field-input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            border-radius: 9px;
+            padding: 9px 12px;
+            color: #fff;
+            font-size: 13px;
+        }
+
+        /* Iframe модалка для шашек */
+        #checkers-iframe-wrap {
+            width: 100%;
+            max-width: 900px;
+            height: 85vh;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        #checkers-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            border-radius: 16px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ВЕРХНИЙ ХЕДЕР -->
+    <header>
+        <div class="brand">
+            <div class="brand-logo">✨</div>
+            <div class="brand-title">
+                Live2D & 3D Assistant
+                <span class="badge-gh">GitHub Pages</span>
+            </div>
+        </div>
+
+        <div class="top-actions">
+            <button class="btn-top" id="btn-open-checkers" title="Запустить русские шашки">
+                ♟️ Шашки
+            </button>
+            <button class="btn-top" id="btn-open-settings" title="Настройки API / Озвучки">
+                ⚙️ Настройки
+            </button>
+            <a href="https://github.com/superdenloar/Live2DAssistant2" target="_blank" class="btn-top btn-primary" title="Репозиторий проекта">
+                ⭐️ GitHub
+            </a>
+        </div>
+    </header>
+
+    <!-- ОСНОВНАЯ РАБОЧАЯ ОБЛАСТЬ -->
+    <main class="workspace">
+        
+        <!-- ЛЕВАЯ ЧАСТЬ: АРЕНА МОДЕЛИ -->
+        <section class="stage-pane">
+            <!-- Переключатель моделей -->
+            <div class="model-selector-bar">
+                <button class="model-pill active" data-model="ayumi3d">
+                    👑 3D Аюми
+                </button>
+                <button class="model-pill" data-model="tsubasa">
+                    🎀 Live2D Цубаса
+                </button>
+                <button class="model-pill" data-model="kitten">
+                    🐱 Live2D Котёнок
+                </button>
+            </div>
+
+            <!-- Вьюпорт аватара -->
+            <div class="avatar-viewport" id="avatar-viewport">
+                <!-- Three.js 3D контейнер -->
+                <div id="threejs-container"></div>
+                <!-- Pixi.js 2D Canvas -->
+                <canvas id="live2d-canvas" style="display: none;"></canvas>
+            </div>
+
+            <!-- Индикатор статуса -->
+            <div class="stage-info">
+                <div class="pulse-dot"></div>
+                <span id="stage-status-text">Загружаю 3D Аюми…</span>
+            </div>
+        </section>
+
+        <!-- ПРАВАЯ ЧАСТЬ: ДЕМО-ЧАТ -->
+        <section class="chat-pane">
+            <div class="chat-header">
+                <div class="chat-title-wrap">
+                    <div class="chat-avatar-thumb">🤖</div>
+                    <div>
+                        <div class="chat-title" id="chat-assistant-name">Аюми (3D Ассистент)</div>
+                        <div class="chat-status">В сети • Браузерный режим</div>
+                    </div>
+                </div>
+
+                <button class="sound-toggle-btn active" id="btn-sound-toggle" title="Включить / выключить браузерную озвучку">
+                    🔊
+                </button>
+            </div>
+
+            <!-- Лента сообщений -->
+            <div class="messages-list" id="messages-list">
+                <div class="message bot">
+                    Привет! ✨ Я демо-версия твоего персонального ассистента. 
+                    <br><br>
+                    Я работаю **напрямую в твоём браузере через GitHub Pages**! Слежу за твоим курсором, моргаю и умею говорить голосом. Нажми на любую кнопку ниже или напиши мне что-нибудь!
+                </div>
+            </div>
+
+            <!-- Быстрые чипсы -->
+            <div class="quick-chips">
+                <button class="chip" data-msg="Кто ты?">🌸 Кто ты?</button>
+                <button class="chip" data-msg="Покивай головой">✨ Покивай головой</button>
+                <button class="chip" data-msg="Помаши головой">👋 Помаши головой</button>
+                <button class="chip" data-msg="Следи за курсором">👀 Следи за курсором</button>
+                <button class="chip" data-msg="Расскажи шутку">😂 Шутка</button>
+                <button class="chip" data-msg="Сыграем в шашки?">♟️ Сыграем в шашки?</button>
+            </div>
+
+            <!-- Панель ввода -->
+            <div class="chat-input-bar">
+                <input type="text" class="chat-input" id="chat-input" placeholder="Напишите сообщение ассистенту...">
+                <button class="btn-send" id="btn-send" title="Отправить">
+                    ➤
+                </button>
+            </div>
+        </section>
+    </main>
+
+    <!-- МОДАЛЬНОЕ ОКНО: НАСТРОЙКИ API -->
+    <div class="modal-overlay" id="modal-settings">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 class="modal-title">⚙️ Настройки демо-ассистента</h3>
+                <button class="btn-close-modal" id="btn-close-settings">&times;</button>
+            </div>
+
+            <div>
+                <label class="field-label">Ключ нейросети Elysium AI / OpenAI (Опционально)</label>
+                <input type="password" class="field-input" id="cfg-api-key" placeholder="sk-...">
+                <small style="color: var(--text-muted); font-size: 11px; display: block; margin-top: 5px;">
+                    Если ключ указан, запросы будут отправляться напрямую в LLM через браузер. Если поле пустое — работает умный встроенный симулятор. Ключ хранится только в вашем браузере.
+                </small>
+            </div>
+
+            <div>
+                <label class="field-label">Базовый URL API</label>
+                <input type="text" class="field-input" id="cfg-api-url" value="https://elysiumai.garden/v1">
+            </div>
+
+            <div>
+                <label class="field-label">Модель</label>
+                <input type="text" class="field-input" id="cfg-api-model" value="deepseek-v4-flash">
+            </div>
+
+            <button class="btn-top btn-primary" id="btn-save-settings" style="justify-content: center; padding: 10px;">
+                💾 Сохранить настройки
+            </button>
+        </div>
+    </div>
+
+    <!-- МОДАЛЬНОЕ ОКНО: ИГРА В ШАШКИ -->
+    <div class="modal-overlay" id="modal-checkers">
+        <div class="modal-card" id="checkers-iframe-wrap">
+            <div style="padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; background: #131520;">
+                <span style="font-weight: 600; font-size: 14px;">♟️ Русские шашки с Live2D ассистентом</span>
+                <button class="btn-close-modal" id="btn-close-checkers">&times;</button>
+            </div>
+            <iframe id="checkers-iframe" src="about:blank"></iframe>
+        </div>
+    </div>
+
+    <!-- СКРИПТ ВЕБ-ДЕМОНСТРАЦИИ -->
+    <script type="module">
+        import { createModel3DAvatar } from './static/model3d_avatar.js';
+
+        // Состояние приложения
+        let currentMode = 'ayumi3d';
+        let current3DInstance = null;
+        let pixiApp = null;
+        let live2dModel = null;
+        let isSoundEnabled = true;
+
+        const viewport = document.getElementById('avatar-viewport');
+        const threeContainer = document.getElementById('threejs-container');
+        const live2dCanvas = document.getElementById('live2d-canvas');
+        const statusText = document.getElementById('stage-status-text');
+        const assistantNameLabel = document.getElementById('chat-assistant-name');
+        const messagesList = document.getElementById('messages-list');
+        const chatInput = document.getElementById('chat-input');
+        const btnSend = document.getElementById('btn-send');
+        const soundToggleBtn = document.getElementById('btn-sound-toggle');
+
+        // 1. Инициализация 3D Модели (Аюми)
+        async function load3DModel() {
+            statusText.textContent = 'Загрузка 3D Аюми…';
+            threeContainer.style.display = 'block';
+            live2dCanvas.style.display = 'none';
+            assistantNameLabel.textContent = 'Аюми (3D Ассистент)';
+
+            if (current3DInstance) {
+                current3DInstance.destroy();
+                current3DInstance = null;
+            }
+
+            try {
+                current3DInstance = await createModel3DAvatar(threeContainer, {
+                    url: './static/models3d/ayumi_rigged.glb',
+                    scale: 1.0,
+                    offset_y: 0,
+                    rotate_y: 0,
+                    follow: true
+                }, { base: '' });
+
+                statusText.textContent = '3D Аюми • Следит за курсором';
+            } catch (err) {
+                console.error('[3D Error]:', err);
+                statusText.textContent = 'Ошибка загрузки 3D модели';
+            }
+        }
+
+        // 2. Инициализация Live2D Модели
+        async function loadLive2D(modelJsonPath, name) {
+            statusText.textContent = `Загрузка ${name}…`;
+            threeContainer.style.display = 'none';
+            live2dCanvas.style.display = 'block';
+            assistantNameLabel.textContent = `${name} (Live2D)`;
+
+            if (current3DInstance) {
+                current3DInstance.destroy();
+                current3DInstance = null;
+            }
+
+            if (!pixiApp) {
+                pixiApp = new PIXI.Application({
+                    view: live2dCanvas,
+                    autoStart: true,
+                    backgroundAlpha: 0,
+                    resizeTo: viewport
+                });
+
+                // Слежение за курсором
+                window.addEventListener('pointermove', (e) => {
+                    if (!live2dModel || !live2dModel.internalModel) return;
+                    const rect = live2dCanvas.getBoundingClientRect();
+                    const nx = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+                    const ny = ((e.clientY - rect.top) / rect.height) * 2 - 1;
+                    
+                    try {
+                        const core = live2dModel.internalModel.coreModel;
+                        core.setParameterValueById('ParamAngleX', nx * 30);
+                        core.setParameterValueById('ParamAngleY', -ny * 30);
+                        core.setParameterValueById('ParamEyeBallX', nx);
+                        core.setParameterValueById('ParamEyeBallY', -ny);
+                    } catch (e) {}
+                });
+            }
+
+            if (live2dModel) {
+                pixiApp.stage.removeChild(live2dModel);
+                live2dModel.destroy();
+                live2dModel = null;
+            }
+
+            try {
+                live2dModel = await PIXI.live2d.Live2DModel.from(modelJsonPath);
+                pixiApp.stage.addChild(live2dModel);
+
+                // Масштабирование и позиционирование
+                const scale = (viewport.clientHeight / live2dModel.height) * 1.8;
+                live2dModel.scale.set(scale);
+                live2dModel.x = (viewport.clientWidth / 2) - (live2dModel.width / 2);
+                live2dModel.y = 20;
+
+                statusText.textContent = `${name} • В сети`;
+            } catch (err) {
+                console.error('[Live2D Error]:', err);
+                statusText.textContent = `Ошибка загрузки ${name}`;
+            }
+        }
+
+        // Переключение режимов
+        document.querySelectorAll('.model-pill').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.model-pill').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentMode = btn.dataset.model;
+
+                if (currentMode === 'ayumi3d') {
+                    load3DModel();
+                } else if (currentMode === 'tsubasa') {
+                    loadLive2D('./static/Live2d_models/TUBASA/TUBASA_014.model3.json', 'Цубаса');
+                } else if (currentMode === 'kitten') {
+                    loadLive2D('./static/Live2d_models/GreyKittenPlush/[vtubergraphic doll]doll 10.model3.json', 'Котёнок');
+                }
+            });
+        });
+
+        // 3. Выполнение команд движения модели 【...】
+        function executeModelCommand(cmd) {
+            if (current3DInstance) {
+                current3DInstance.command(cmd);
+            }
+            if (live2dModel && live2dModel.internalModel) {
+                try {
+                    const core = live2dModel.internalModel.coreModel;
+                    if (cmd.includes('Киваю') || cmd.includes('кивок')) {
+                        let i = 0;
+                        const interval = setInterval(() => {
+                            core.setParameterValueById('ParamAngleY', Math.sin(i) * 25);
+                            i += 0.4;
+                            if (i > Math.PI * 2) {
+                                clearInterval(interval);
+                                core.setParameterValueById('ParamAngleY', 0);
+                            }
+                        }, 30);
+                    } else if (cmd.includes('Махаю') || cmd.includes('нет')) {
+                        let i = 0;
+                        const interval = setInterval(() => {
+                            core.setParameterValueById('ParamAngleX', Math.sin(i) * 30);
+                            i += 0.4;
+                            if (i > Math.PI * 2) {
+                                clearInterval(interval);
+                                core.setParameterValueById('ParamAngleX', 0);
+                            }
+                        }, 30);
+                    }
+                } catch (e) {}
+            }
+        }
+
+        // 4. Озвучка текста через Web Speech API
+        function speakText(text) {
+            if (!isSoundEnabled || !window.speechSynthesis) return;
+            window.speechSynthesis.cancel();
+
+            const cleanText = text.replace(/【[^】]+】/g, '').trim();
+            if (!cleanText) return;
+
+            const utterance = new SpeechSynthesisUtterance(cleanText);
+            utterance.lang = 'ru-RU';
+            utterance.rate = 1.05;
+            utterance.pitch = 1.15;
+
+            // Анимация открывания рта / подпрыгивания во время речи
+            utterance.onstart = () => {
+                if (current3DInstance) current3DInstance.level = 0.8;
+            };
+            utterance.onend = () => {
+                if (current3DInstance) current3DInstance.level = 0;
+            };
+
+            window.speechSynthesis.speak(utterance);
+        }
+
+        // 5. Логика отправки сообщений
+        function appendMessage(text, role = 'bot') {
+            const msgEl = document.createElement('div');
+            msgEl.className = `message ${role}`;
+            msgEl.innerHTML = text.replace(/\n/g, '<br>');
+            messagesList.appendChild(msgEl);
+            messagesList.scrollTop = messagesList.scrollHeight;
+        }
+
+        async function handleUserSend(text) {
+            const trimmed = (text || chatInput.value).trim();
+            if (!trimmed) return;
+
+            appendMessage(trimmed, 'user');
+            chatInput.value = '';
+
+            // Проверяем, есть ли сохранённый API-ключ для реального LLM
+            const apiKey = localStorage.getItem('assistant_api_key') || '';
+            const apiUrl = localStorage.getItem('assistant_api_url') || 'https://elysiumai.garden/v1';
+            const apiModel = localStorage.getItem('assistant_api_model') || 'deepseek-v4-flash';
+
+            if (apiKey) {
+                appendMessage('Думаю…', 'system');
+                try {
+                    const resp = await fetch(`${apiUrl}/chat/completions`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${apiKey}`
+                        },
+                        body: JSON.stringify({
+                            model: apiModel,
+                            messages: [
+                                { role: 'system', content: 'Ты милый интерактивный ассистент. Отвечай кратко, живо, на русском языке (1-2 предложения). Можешь использовать команды 【Киваю головой】, 【Махаю головой】, 【Посмотреть влево】.' },
+                                { role: 'user', content: trimmed }
+                            ]
+                        })
+                    });
+                    const data = await resp.json();
+                    document.querySelectorAll('.message.system').forEach(el => el.remove());
+                    
+                    const reply = data.choices?.[0]?.message?.content || 'Не удалось получить ответ нейросети.';
+                    
+                    // Парсинг команд
+                    const matches = reply.match(/【[^】]+】/g) || [];
+                    matches.forEach(cmd => executeModelCommand(cmd));
+
+                    appendMessage(reply, 'bot');
+                    speakText(reply);
+                    return;
+                } catch (e) {
+                    console.warn('API error, fallback to mock:', e);
+                    document.querySelectorAll('.message.system').forEach(el => el.remove());
+                }
+            }
+
+            // Встроенный умный симулятор для GitHub Pages (без API)
+            setTimeout(() => {
+                let botReply = '';
+                const lower = trimmed.toLowerCase();
+
+                if (lower.includes('кивн') || lower.includes('соглас') || lower.includes('покивай')) {
+                    executeModelCommand('【Киваю головой】');
+                    botReply = '【Киваю головой】 Да, конечно! Я с тобой абсолютно согласна.';
+                } else if (lower.includes('помаши') || lower.includes('нет') || lower.includes('не соглас')) {
+                    executeModelCommand('【Махаю головой】');
+                    botReply = '【Махаю головой】 Не-а, так дело не пойдет!';
+                } else if (lower.includes('кто ты') || lower.includes('о себе')) {
+                    executeModelCommand('【Киваю головой】');
+                    botReply = 'Я интерактивный AI-ассистент! Мой полный бэкенд написан на Python с поддержкой Live2D, 3D, Whisper и Elysium AI, а сейчас я работаю прямо на GitHub Pages!';
+                } else if (lower.includes('шашк')) {
+                    executeModelCommand('【Киваю головой】');
+                    botReply = 'С удовольствием! Нажми кнопку «♟️ Шашки» вверху страницы, и откроется наша игра!';
+                } else if (lower.includes('шутк') || lower.includes('анекдот')) {
+                    botReply = 'Знаешь, почему программисты путают Хэллоуин и Рождество? Потому что 31 OCT = 25 DEC!';
+                } else {
+                    executeModelCommand('【Киваю головой】');
+                    const variations = [
+                        '【Киваю головой】 Замечательно! Я внимательно тебя слушаю.',
+                        'Интересно! В полной версии на Python я могу запоминать контекст и генерировать длинные диалоги через DeepSeek.',
+                        '【Киваю головой】 Всё отлично работает прямо из GitHub Pages без единого сервера!'
+                    ];
+                    botReply = variations[Math.floor(Math.random() * variations.length)];
+                }
+
+                appendMessage(botReply, 'bot');
+                speakText(botReply);
+            }, 400);
+        }
+
+        // Обработчики кнопок чата
+        btnSend.addEventListener('click', () => handleUserSend());
+        chatInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') handleUserSend();
+        });
+
+        document.querySelectorAll('.chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                handleUserSend(chip.dataset.msg);
+            });
+        });
+
+        // Переключатель звука
+        soundToggleBtn.addEventListener('click', () => {
+            isSoundEnabled = !isSoundEnabled;
+            soundToggleBtn.classList.toggle('active', isSoundEnabled);
+            soundToggleBtn.textContent = isSoundEnabled ? '🔊' : '🔇';
+            if (!isSoundEnabled && window.speechSynthesis) {
+                window.speechSynthesis.cancel();
+            }
+        });
+
+        // Модалка настроек
+        const modalSettings = document.getElementById('modal-settings');
+        document.getElementById('btn-open-settings').addEventListener('click', () => {
+            document.getElementById('cfg-api-key').value = localStorage.getItem('assistant_api_key') || '';
+            document.getElementById('cfg-api-url').value = localStorage.getItem('assistant_api_url') || 'https://elysiumai.garden/v1';
+            document.getElementById('cfg-api-model').value = localStorage.getItem('assistant_api_model') || 'deepseek-v4-flash';
+            modalSettings.style.display = 'flex';
+        });
+
+        document.getElementById('btn-close-settings').addEventListener('click', () => {
+            modalSettings.style.display = 'none';
+        });
+
+        document.getElementById('btn-save-settings').addEventListener('click', () => {
+            localStorage.setItem('assistant_api_key', document.getElementById('cfg-api-key').value.trim());
+            localStorage.setItem('assistant_api_url', document.getElementById('cfg-api-url').value.trim());
+            localStorage.setItem('assistant_api_model', document.getElementById('cfg-api-model').value.trim());
+            modalSettings.style.display = 'none';
+            appendMessage('Настройки API сохранены в браузере!', 'system');
+        });
+
+        // Модалка шашек
+        const modalCheckers = document.getElementById('modal-checkers');
+        const checkersIframe = document.getElementById('checkers-iframe');
+        document.getElementById('btn-open-checkers').addEventListener('click', () => {
+            checkersIframe.src = './AnotherServer/static/index.html';
+            modalCheckers.style.display = 'flex';
+        });
+
+        document.getElementById('btn-close-checkers').addEventListener('click', () => {
+            modalCheckers.style.display = 'none';
+            checkersIframe.src = 'about:blank';
+        });
+
+        // Старт: по умолчанию запускаем 3D Аюми
+        load3DModel();
+    </script>
+</body>
+</html>

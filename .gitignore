@@ -216,3 +216,6 @@ static/models3d/.*
 
 # Дубликаты и лишние картинки в корне
 /delicate-pink-flowers.jpg
+
+# Распакованные кадры загруженных GIF-аватаров (пользовательский кэш)
+static/gif_avatars/
