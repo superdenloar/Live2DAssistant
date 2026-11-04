@@ -1,0 +1,6 @@
+# Дополнительные зависимости для локального синтеза (Silero) и распознавания речи (Whisper)
+-r requirements.txt
+torch
+torchaudio
+openai-whisper
+silero

@@ -1,6 +1,9 @@
 import os
 import sys
-import torch
+try:
+    import torch
+except ImportError:
+    torch = None
 import uuid
 import config
 import webbrowser
@@ -15,8 +18,16 @@ from functools import wraps
 from datetime import timedelta
 from flask_sqlalchemy import SQLAlchemy
 from openai import OpenAI
-import whisper
-import torchaudio
+
+try:
+    import whisper
+except ImportError:
+    whisper = None
+
+try:
+    import torchaudio
+except ImportError:
+    torchaudio = None
 
 # === СЛОВАРЬ КОМАНД LIVE2D ===
 COMMAND_MAP = {
@@ -166,7 +177,7 @@ MODEL_SPEAKERS = {
 }
 
 # --- Инициализация нейросетей ---
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu') if torch else 'cpu'
 whisper_model = None
 active_silero_model = None
 active_assistant_id = None
@@ -2416,7 +2427,7 @@ def bootstrap_models(load_whisper=True):
     init_database()
     print("Загрузка моделей...")
 
-    enable_stt = getattr(config, 'ENABLE_STT', True)
+    enable_stt = getattr(config, 'ENABLE_STT', True) and (whisper is not None)
     if enable_stt and load_whisper and whisper_model is None:
         try:
             whisper_model = whisper.load_model("tiny")
@@ -2425,7 +2436,7 @@ def bootstrap_models(load_whisper=True):
             print(f"!!! Предупреждение: не удалось загрузить Whisper ({e}). STT отключен.")
             whisper_model = None
 
-    enable_tts = getattr(config, 'ENABLE_TTS', True)
+    enable_tts = getattr(config, 'ENABLE_TTS', True) and (torch is not None)
     if enable_tts:
         try:
             with app.app_context():

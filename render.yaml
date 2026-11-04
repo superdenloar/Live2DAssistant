@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: live2d-assistant
+    runtime: python
+    plan: free
+    region: frankfurt
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn python_server:api --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: ENABLE_TTS
+        value: "false"
+      - key: ENABLE_STT
+        value: "false"
