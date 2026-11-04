@@ -182,8 +182,9 @@
                 <!-- Превью -->
                 <div style="background:#fff;border-radius:20px;border:1px solid var(--line);padding:20px;box-shadow:var(--shadow-soft)">
                     <h3>Живое превью</h3>
-                    <div class="stage-prev-box">
-                        <span id="editor-avatar-symbol">💃</span>
+                    <div class="stage-prev-box" style="position:relative;height:240px;overflow:hidden;border-radius:14px;background:linear-gradient(180deg,#F5F2FF,#FFFFFF);display:flex;align-items:center;justify-content:center">
+                        <div id="editor-3d-stage" style="position:absolute;inset:0;width:100%;height:100%"></div>
+                        <span id="editor-avatar-symbol" style="font-size:56px;z-index:2;display:none">💃</span>
                     </div>
                     <div class="field">
                         <label>Масштаб отображения</label>
@@ -371,11 +372,60 @@
         setTimeout(() => t.style.display = 'none', 2400);
     }
 
+    let editor3DAvatar = null;
+    let createModel3DAvatarFn = null;
+
+    async function loadEditor3D() {
+        if (!createModel3DAvatarFn) {
+            try {
+                const mod = await import('./static/model3d_avatar.js');
+                createModel3DAvatarFn = mod.createModel3DAvatar;
+            } catch(e) { console.warn('Cannot load 3D module:', e); }
+        }
+        const stage = document.getElementById('editor-3d-stage');
+        const fallback = document.getElementById('editor-avatar-symbol');
+        if (createModel3DAvatarFn && stage && !editor3DAvatar) {
+            try {
+                editor3DAvatar = await createModel3DAvatarFn(stage, {
+                    url: './static/models3d/ayumi_rigged.glb',
+                    scale: 1.0,
+                    offset_y: -0.1,
+                    rotate_y: 0,
+                    follow: true
+                }, { base: '' });
+                if (fallback) fallback.style.display = 'none';
+            } catch(e) {
+                console.warn('3D error in editor:', e);
+                if (fallback) fallback.style.display = 'block';
+            }
+        }
+    }
+
     function openEditor(name, icon) {
         document.getElementById('editor-char-title').textContent = 'Редактор: ' + name;
-        document.getElementById('editor-avatar-symbol').textContent = icon;
+        const fallback = document.getElementById('editor-avatar-symbol');
+        const stage = document.getElementById('editor-3d-stage');
+        if (name.includes('3D') || name.includes('Аюми')) {
+            if (stage) stage.style.display = 'block';
+            if (fallback) fallback.style.display = 'none';
+            loadEditor3D();
+        } else {
+            if (stage) stage.style.display = 'none';
+            if (fallback) {
+                fallback.style.display = 'block';
+                fallback.textContent = icon;
+            }
+        }
         switchTab('editor');
     }
+
+    // При открытии редактора по умолчанию инициализируем 3D
+    window.addEventListener('load', () => {
+        const hash = location.hash.replace('#', '');
+        if (hash === 'editor') {
+            loadEditor3D();
+        }
+    });
 
     function sendOperatorReply() {
         const inp = document.getElementById('operator-input');

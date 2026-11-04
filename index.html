@@ -122,13 +122,13 @@
                                 </div>
                             </div>
                             <div class="w-panel">
-                                <div class="w-stage" id="landing-stage">
-                                    <div class="hero-avatar-anim">🌸</div>
+                                <div class="w-stage" id="landing-stage" style="position:relative;width:100%;height:100%;min-height:220px;overflow:hidden">
+                                    <div class="hero-avatar-anim" id="hero-fallback-anim">💃</div>
                                 </div>
                                 <div class="w-box">
-                                    <div class="w-name"><span class="dot" style="color:#1FAF8B">●</span><b>Цубаса</b><span class="w-tag">ассистент</span></div>
+                                    <div class="w-name"><span class="dot" style="color:#1FAF8B">●</span><b>Аюми (3D)</b><span class="w-tag">ассистент</span></div>
                                     <div class="w-log" id="hero-log">
-                                        <div class="w-msg a">Здравствуйте! Посоветовать вам чай для первого заказа?</div>
+                                        <div class="w-msg a">Здравствуйте! Я 3D-ассистент Аюми. Двигайте мышь вокруг меня или задайте вопрос!</div>
                                     </div>
                                     <div class="w-input" onclick="talkHero()"><span>Нажмите, чтобы спросить…</span><i>➤</i></div>
                                 </div>
@@ -223,8 +223,27 @@
         Live2D & 3D Assistant © 2026 · Интерактивная веб-демонстрация
     </footer>
 
-    <script>
-        function talkHero() {
+    <script type="module">
+        import { createModel3DAvatar } from './static/model3d_avatar.js';
+
+        // Инициализируем живую 3D модель прямо в макете лендинга
+        const stage = document.getElementById('landing-stage');
+        if (stage) {
+            createModel3DAvatar(stage, {
+                url: './static/models3d/ayumi_rigged.glb',
+                scale: 1.0,
+                offset_y: -0.15,
+                rotate_y: 0,
+                follow: true
+            }, { base: '' }).then(() => {
+                const fb = document.getElementById('hero-fallback-anim');
+                if (fb) fb.style.display = 'none';
+            }).catch(err => {
+                console.warn('3D Hero load fallback:', err);
+            });
+        }
+
+        window.talkHero = function() {
             const log = document.getElementById('hero-log');
             const u = document.createElement('div');
             u.className = 'w-msg u';
@@ -244,7 +263,7 @@
                     window.speechSynthesis.speak(ut);
                 }
             }, 500);
-        }
+        };
     </script>
 </body>
 </html>
