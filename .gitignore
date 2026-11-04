@@ -179,12 +179,12 @@ cython_debug/
 #  refer to https://docs.cursor.com/context/ignore-files
 .cursorignore
 .cursorindexingignore
-database.db
+# Базы данных
+*.db
+!database.db
 temp_audio/
 ffmpeg/
 # Базы данных и персональные данные
-database.db
-*.db
 *.sqlite3
 
 # Временное аудио и кэш
