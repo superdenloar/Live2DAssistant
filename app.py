@@ -13,7 +13,7 @@ from datetime import datetime
 import random
 import re
 
-from flask import Flask, render_template, request, jsonify, redirect, url_for, session, abort
+from flask import Flask, render_template, request, jsonify, redirect, url_for, session, abort, send_from_directory
 from functools import wraps
 from datetime import timedelta
 from flask_sqlalchemy import SQLAlchemy
@@ -49,12 +49,21 @@ app = Flask(__name__)
 db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'database.db')
 app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['UPLOAD_FOLDER'] = os.path.join('static', 'Live2d_Avatars')
+app.config['UPLOAD_FOLDER'] = os.path.join('static', 'Live2d_avatars')
 app.config['GIF_FOLDER'] = os.path.join('static', 'gif_avatars')
 app.config['USER_AVATAR_FOLDER'] = os.path.join('static', 'user_avatars')
 app.secret_key = os.environ.get('L2A_SECRET_KEY', 'live2d-assistant-mvp-secret')
 app.permanent_session_lifetime = timedelta(days=30)
 db = SQLAlchemy(app)
+
+# Совместимость с регистром путей на Linux (Render/VPS)
+@app.route('/static/Live2d_Models/<path:filename>')
+def _serve_live2d_models_compat(filename):
+    return send_from_directory(os.path.join(app.root_path, 'static', 'Live2d_models'), filename)
+
+@app.route('/static/Live2d_Avatars/<path:filename>')
+def _serve_live2d_avatars_compat(filename):
+    return send_from_directory(os.path.join(app.root_path, 'static', 'Live2d_avatars'), filename)
 
 # --- Добавляем FFmpeg в PATH ---
 project_dir = os.path.dirname(os.path.abspath(__file__)) 
@@ -1377,7 +1386,7 @@ def upload_avatar(assistant_id):
         new_filename = f"{assistant.id}{extension if extension else '.png'}"
         save_path = os.path.join(app.config['UPLOAD_FOLDER'], new_filename)
         file.save(save_path)
-        assistant.photo_url = f'Live2d_Avatars/{new_filename}'
+        assistant.photo_url = f'Live2d_avatars/{new_filename}'
         db.session.commit()
         return jsonify({"success": True, "new_photo_url": url_for('static', filename=assistant.photo_url)})
     return jsonify({"error": "File upload failed"}), 500
@@ -1469,14 +1478,16 @@ AVATAR_TYPES = [
 
 def list_live2d_models():
     models = []
-    live2d_models_dir = os.path.join('static', 'Live2d_Models')
+    live2d_models_dir = os.path.join('static', 'Live2d_models')
+    if not os.path.exists(live2d_models_dir):
+        live2d_models_dir = os.path.join('static', 'Live2d_Models')
     if os.path.exists(live2d_models_dir):
         for folder_name in sorted(os.listdir(live2d_models_dir)):
             model_folder_path = os.path.join(live2d_models_dir, folder_name)
             if os.path.isdir(model_folder_path):
                 for filename in os.listdir(model_folder_path):
                     if filename.endswith('.model3.json'):
-                        models.append({'name': folder_name, 'path': f'/static/Live2d_Models/{folder_name}/{filename}'})
+                        models.append({'name': folder_name, 'path': f'/static/Live2d_models/{folder_name}/{filename}'})
                         break
     return models
 
@@ -2363,7 +2374,7 @@ def init_database():
                 name='Аюми 3D', description='Демо 3D-аватара: модель .glb, бета-версия',
                 system_prompt=load_default_system_prompt().replace('Лила', 'Аюми'),
                 avatar_type='3d', widget_mode='card',
-                photo_url='Live2d_Avatars/ayumi3d.png' if os.path.exists(os.path.join('static', 'Live2d_Avatars', 'ayumi3d.png')) else 'Img/default_avatar.png',
+                photo_url='Live2d_avatars/ayumi3d.png' if os.path.exists(os.path.join('static', 'Live2d_avatars', 'ayumi3d.png')) else 'img/default_avatar.png',
                 tts_model_path='static/silero_models/v4_ru.pt', tts_speaker='xenia',
                 greeting_phrase='Привет! Я Аюми — трёхмерная помощница. Покрути меня мышкой!',
                 model3d=json.dumps({'url': next((m['path'] for m in models3d if 'rigged' in m['path']), models3d[0]['path']), 'scale': 1.0, 'offset_y': 0, 'rotate_y': 0, 'follow': True}),
@@ -2383,13 +2394,15 @@ def init_database():
 
         if not Assistant.query.first():
             first_live2d_model_path = ""
-            live2d_models_dir = os.path.join('static', 'Live2d_Models')
+            live2d_models_dir = os.path.join('static', 'Live2d_models')
+            if not os.path.exists(live2d_models_dir):
+                live2d_models_dir = os.path.join('static', 'Live2d_Models')
             if os.path.exists(live2d_models_dir):
                 for folder_name in os.listdir(live2d_models_dir):
                     if os.path.isdir(os.path.join(live2d_models_dir, folder_name)):
                         for file in os.listdir(os.path.join(live2d_models_dir, folder_name)):
                             if file.endswith('.model3.json'):
-                                first_live2d_model_path = f'/static/Live2d_Models/{folder_name}/{file}'
+                                first_live2d_model_path = f'/static/Live2d_models/{folder_name}/{file}'
                                 break
                     if first_live2d_model_path:
                         break
